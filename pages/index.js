@@ -168,6 +168,17 @@ export default function Home() {
         setRecordCount(data.edges.length);
       }
       
+      // Log performance data if available
+      if (data.requestInfo?.performance) {
+        console.log('=== FRONTEND PERFORMANCE DATA ===');
+        console.log('Total time:', data.requestInfo.performance.totalTime + 'ms');
+        console.log('Helius API:', data.requestInfo.performance.heliusTime + 'ms');
+        console.log('Time filtering:', data.requestInfo.performance.filterTime + 'ms');
+        console.log('Processing:', data.requestInfo.performance.processTime + 'ms');
+        console.log('Token enhancement:', data.requestInfo.performance.enhanceTime + 'ms');
+        console.log('=== END PERFORMANCE DATA ===');
+      }
+      
       // Store rate limit info if available
       if (data.requestInfo?.rateLimit) {
         setRateLimit(data.requestInfo.rateLimit);

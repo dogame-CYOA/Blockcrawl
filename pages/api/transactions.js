@@ -12,8 +12,11 @@ const redis = new Redis({
 
 // Cache token metadata in Redis for 24 hours
 async function getCachedTokenMetadata(mint) {
+  const cacheStartTime = Date.now();
   try {
     const cached = await redis.get(`token:${mint}`);
+    const cacheEndTime = Date.now();
+    console.log(`[DEBUG] Redis GET ${mint}: ${cacheEndTime - cacheStartTime}ms`);
     return cached ? JSON.parse(cached) : null;
   } catch (error) {
     console.log('Redis cache error:', error.message);
@@ -22,8 +25,11 @@ async function getCachedTokenMetadata(mint) {
 }
 
 async function setCachedTokenMetadata(mint, metadata) {
+  const cacheStartTime = Date.now();
   try {
     await redis.setex(`token:${mint}`, 86400, JSON.stringify(metadata)); // 24 hours
+    const cacheEndTime = Date.now();
+    console.log(`[DEBUG] Redis SET ${mint}: ${cacheEndTime - cacheStartTime}ms`);
   } catch (error) {
     console.log('Redis cache set error:', error.message);
   }
@@ -125,6 +131,8 @@ export default async function handler(req, res) {
       });
     }
 
+    const startTime = Date.now();
+    console.log('=== PERFORMANCE DEBUG START ===');
     console.log('API Key configured, making direct Helius API call...');
     console.log('Fetching transactions for address:', cleanAddress);
     
@@ -168,6 +176,9 @@ export default async function handler(req, res) {
     }
 
     // Use the enriched transactions endpoint for better data
+    const heliusStartTime = Date.now();
+    console.log(`[DEBUG] Starting Helius API call at ${new Date().toISOString()}`);
+    
     const response = await axios.get(`https://api.helius.xyz/v0/addresses/${cleanAddress}/transactions`, {
       params: {
         ...params,
@@ -175,6 +186,9 @@ export default async function handler(req, res) {
       },
       timeout: 60000, // Increased timeout to 60 seconds
     });
+    
+    const heliusEndTime = Date.now();
+    console.log(`[DEBUG] Helius API call completed in ${heliusEndTime - heliusStartTime}ms`);
 
     console.log('Helius API response status:', response.status);
     console.log('Response data length:', response.data?.length || 0);
@@ -198,6 +212,7 @@ export default async function handler(req, res) {
     }
 
     // Filter transactions by time range if provided
+    const filterStartTime = Date.now();
     let filteredTransactions = response.data || [];
     if (timeRange) {
       const startTime = new Date(timeRange.start).getTime();
@@ -211,8 +226,13 @@ export default async function handler(req, res) {
       
       console.log(`Filtered ${response.data?.length || 0} transactions to ${filteredTransactions.length} within time range`);
     }
+    const filterEndTime = Date.now();
+    console.log(`[DEBUG] Time filtering completed in ${filterEndTime - filterStartTime}ms`);
 
           // Process the transaction data with timeout protection
+    const processStartTime = Date.now();
+    console.log(`[DEBUG] Starting transaction processing at ${new Date().toISOString()}`);
+    
     const processWithTimeout = async () => {
       return await processTransactions(filteredTransactions, cleanAddress);
     };
@@ -223,21 +243,40 @@ export default async function handler(req, res) {
         setTimeout(() => reject(new Error('Processing timeout')), 60000) // 60 second timeout
       )
     ]);
+    
+    const processEndTime = Date.now();
+    console.log(`[DEBUG] Transaction processing completed in ${processEndTime - processStartTime}ms`);
 
     // Enhance token metadata by fetching additional info for unknown tokens
+    const enhanceStartTime = Date.now();
+    console.log(`[DEBUG] Starting token metadata enhancement at ${new Date().toISOString()}`);
+    
     const enhancedData = await enhanceTokenMetadata(transactionData);
+    
+    const enhanceEndTime = Date.now();
+    console.log(`[DEBUG] Token metadata enhancement completed in ${enhanceEndTime - enhanceStartTime}ms`);
 
+    const totalEndTime = Date.now();
+    console.log(`[DEBUG] Total request time: ${totalEndTime - startTime}ms`);
     console.log('Transaction data processed successfully:', {
-      nodes: transactionData.nodes?.length || 0,
-      edges: transactionData.edges?.length || 0
+      nodes: enhancedData.nodes?.length || 0,
+      edges: enhancedData.edges?.length || 0
     });
+    console.log('=== PERFORMANCE DEBUG END ===');
 
     // Return success response
     return res.status(200).json({
       ...enhancedData,
       requestInfo: {
         address: cleanAddress,
-        timestamp: new Date().toISOString()
+        timestamp: new Date().toISOString(),
+        performance: {
+          totalTime: totalEndTime - startTime,
+          heliusTime: heliusEndTime - heliusStartTime,
+          filterTime: filterEndTime - filterStartTime,
+          processTime: processEndTime - processStartTime,
+          enhanceTime: enhanceEndTime - enhanceStartTime
+        }
       }
     });
 
@@ -288,6 +327,9 @@ export default async function handler(req, res) {
  * Process raw transaction data into nodes and edges for visualization
  */
 async function processTransactions(transactions, inputAddress) {
+  const processStartTime = Date.now();
+  console.log(`[DEBUG] processTransactions: Starting with ${transactions.length} transactions`);
+  
   const nodes = new Map();
   const edges = [];
   
@@ -298,8 +340,6 @@ async function processTransactions(transactions, inputAddress) {
     type: 'input',
     size: 60,
   });
-
-  console.log('Processing', transactions.length, 'transactions');
 
   // Debug: Log the first transaction structure
   if (transactions.length > 0) {
@@ -376,7 +416,8 @@ async function processTransactions(transactions, inputAddress) {
   
   // Early exit if no transfers found
   if (!hasTransfers) {
-    console.log('No transfers found in any transactions, returning early');
+    const processEndTime = Date.now();
+    console.log(`[DEBUG] processTransactions: Early exit - no transfers found in ${processEndTime - processStartTime}ms`);
     return {
       nodes: [{
         id: inputAddress,
@@ -392,9 +433,15 @@ async function processTransactions(transactions, inputAddress) {
     };
   }
 
-      // Get entity information for all unique addresses
-    const uniqueAddresses = Array.from(nodes.keys());
-    const entityInfo = await entityIdentifier.batchResolveAddresses(uniqueAddresses);
+        // Get entity information for all unique addresses
+  const entityStartTime = Date.now();
+  const uniqueAddresses = Array.from(nodes.keys());
+  console.log(`[DEBUG] processTransactions: Resolving ${uniqueAddresses.length} addresses`);
+  
+  const entityInfo = await entityIdentifier.batchResolveAddresses(uniqueAddresses);
+  
+  const entityEndTime = Date.now();
+  console.log(`[DEBUG] processTransactions: Entity resolution completed in ${entityEndTime - entityStartTime}ms`);
 
       // Get token metadata for all unique mint addresses (only if we have edges)
   const tokenMetadata = {};
@@ -448,6 +495,9 @@ async function processTransactions(transactions, inputAddress) {
       return edge;
     });
 
+  const processEndTime = Date.now();
+  console.log(`[DEBUG] processTransactions: Completed in ${processEndTime - processStartTime}ms`);
+  
   const result = {
     nodes: enhancedNodes,
     edges: enhancedEdges,
@@ -470,11 +520,14 @@ async function processTransactions(transactions, inputAddress) {
  * Enhance token metadata by fetching additional information for unknown tokens
  */
 async function enhanceTokenMetadata(transactionData) {
+  const enhanceStartTime = Date.now();
+  console.log(`[DEBUG] enhanceTokenMetadata: Starting with ${transactionData.edges?.length || 0} edges`);
+  
   const enhancedData = { ...transactionData };
   
   // Early exit if no edges to process
   if (!enhancedData.edges || enhancedData.edges.length === 0) {
-    console.log('No edges to enhance, skipping token metadata fetching');
+    console.log('[DEBUG] enhanceTokenMetadata: No edges to enhance, skipping token metadata fetching');
     return enhancedData;
   }
   
@@ -505,7 +558,8 @@ async function enhanceTokenMetadata(transactionData) {
 
   // Fetch metadata for unknown tokens (optimized for performance)
   if (unknownTokens.size > 0) {
-    console.log(`Fetching metadata for ${unknownTokens.size} unknown tokens`);
+    const tokenFetchStartTime = Date.now();
+    console.log(`[DEBUG] enhanceTokenMetadata: Fetching metadata for ${unknownTokens.size} unknown tokens`);
     
     // Batch fetch token metadata for better performance
     const tokenMints = Array.from(unknownTokens);
@@ -515,6 +569,9 @@ async function enhanceTokenMetadata(transactionData) {
       const batch = tokenMints.slice(i, i + batchSize);
       
       try {
+        const batchStartTime = Date.now();
+        console.log(`[DEBUG] enhanceTokenMetadata: Fetching batch ${i/batchSize + 1} (${batch.length} tokens)`);
+        
         const tokenResponse = await axios.get(`https://api.helius.xyz/v0/token-metadata`, {
           params: {
             'api-key': process.env.HELIUS_API_KEY,
@@ -522,6 +579,9 @@ async function enhanceTokenMetadata(transactionData) {
           },
           timeout: 8000
         });
+        
+        const batchEndTime = Date.now();
+        console.log(`[DEBUG] enhanceTokenMetadata: Batch ${i/batchSize + 1} completed in ${batchEndTime - batchStartTime}ms`);
 
         if (tokenResponse.data && Array.isArray(tokenResponse.data)) {
           tokenResponse.data.forEach((tokenInfo, index) => {
@@ -568,8 +628,10 @@ async function enhanceTokenMetadata(transactionData) {
         console.log(`Failed to fetch metadata for token batch:`, error.message);
         
         // Fallback: try individual tokens
+        console.log(`[DEBUG] enhanceTokenMetadata: Fallback to individual tokens for batch ${i/batchSize + 1}`);
         for (const mint of batch) {
           try {
+            const individualStartTime = Date.now();
             const individualResponse = await axios.get(`https://api.helius.xyz/v0/token-metadata`, {
               params: {
                 'api-key': process.env.HELIUS_API_KEY,
@@ -577,6 +639,9 @@ async function enhanceTokenMetadata(transactionData) {
               },
               timeout: 3000
             });
+            
+            const individualEndTime = Date.now();
+            console.log(`[DEBUG] enhanceTokenMetadata: Individual token ${mint} completed in ${individualEndTime - individualStartTime}ms`);
 
             if (individualResponse.data && individualResponse.data[0]) {
               const tokenInfo = individualResponse.data[0];
@@ -611,8 +676,13 @@ async function enhanceTokenMetadata(transactionData) {
         }
       }
     }
+    
+    const tokenFetchEndTime = Date.now();
+    console.log(`[DEBUG] enhanceTokenMetadata: Token fetching completed in ${tokenFetchEndTime - tokenFetchStartTime}ms`);
   }
 
+  const enhanceEndTime = Date.now();
+  console.log(`[DEBUG] enhanceTokenMetadata: Completed in ${enhanceEndTime - enhanceStartTime}ms`);
   return enhancedData;
 }
 
