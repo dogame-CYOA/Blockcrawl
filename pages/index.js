@@ -19,6 +19,7 @@ export default function Home() {
   const [trafficFilter, setTrafficFilter] = useState('both'); // 'incoming', 'outgoing', 'both'
   const [recordCount, setRecordCount] = useState(null); // Track number of records found
   const [expandedData, setExpandedData] = useState({}); // Store expanded node data
+  const [partialData, setPartialData] = useState(null); // For progressive loading
 
   // Load theme preference from localStorage
   useEffect(() => {

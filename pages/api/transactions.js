@@ -2,6 +2,33 @@ import axios from 'axios';
 import { entityIdentifier } from '../../lib/entity-identifier';
 import { checkRateLimit, getClientIP } from '../../lib/ratelimit';
 
+// Add Redis caching for token metadata
+import { Redis } from '@upstash/redis';
+
+const redis = new Redis({
+  url: process.env.UPSTASH_REDIS_REST_URL,
+  token: process.env.UPSTASH_REDIS_REST_TOKEN,
+});
+
+// Cache token metadata in Redis for 24 hours
+async function getCachedTokenMetadata(mint) {
+  try {
+    const cached = await redis.get(`token:${mint}`);
+    return cached ? JSON.parse(cached) : null;
+  } catch (error) {
+    console.log('Redis cache error:', error.message);
+    return null;
+  }
+}
+
+async function setCachedTokenMetadata(mint, metadata) {
+  try {
+    await redis.setex(`token:${mint}`, 86400, JSON.stringify(metadata)); // 24 hours
+  } catch (error) {
+    console.log('Redis cache set error:', error.message);
+  }
+}
+
 /**
  * Serverless function to fetch transaction data securely
  * Using the same working format as the test endpoint
@@ -439,9 +466,6 @@ async function processTransactions(transactions, inputAddress) {
   return result;
 }
 
-// Simple in-memory cache for token metadata (resets on server restart)
-const tokenMetadataCache = new Map();
-
 /**
  * Enhance token metadata by fetching additional information for unknown tokens
  */
@@ -456,22 +480,28 @@ async function enhanceTokenMetadata(transactionData) {
   
   const unknownTokens = new Set();
   
-  // Collect all unknown token mints (excluding cached ones)
+  // Collect all unknown token mints (checking Redis cache first)
+  const cachePromises = [];
   enhancedData.edges.forEach(edge => {
     if (edge.mint && (edge.tokenSymbol === 'Unknown' || !edge.tokenSymbol)) {
-      // Check if we have this token in cache
-      if (!tokenMetadataCache.has(edge.mint)) {
-        unknownTokens.add(edge.mint);
-      } else {
-        // Use cached metadata
-        const cachedMetadata = tokenMetadataCache.get(edge.mint);
-        edge.tokenSymbol = cachedMetadata.symbol;
-        edge.tokenName = cachedMetadata.name;
-        edge.tokenLogo = cachedMetadata.logo;
-        edge.tokenMetadata = cachedMetadata.metadata;
-      }
+      cachePromises.push(
+        getCachedTokenMetadata(edge.mint).then(cached => {
+          if (cached) {
+            // Use cached metadata
+            edge.tokenSymbol = cached.symbol;
+            edge.tokenName = cached.name;
+            edge.tokenLogo = cached.logo;
+            edge.tokenMetadata = cached.metadata;
+          } else {
+            unknownTokens.add(edge.mint);
+          }
+        })
+      );
     }
   });
+  
+  // Wait for all cache checks to complete
+  await Promise.all(cachePromises);
 
   // Fetch metadata for unknown tokens (optimized for performance)
   if (unknownTokens.size > 0) {
@@ -501,7 +531,7 @@ async function enhanceTokenMetadata(transactionData) {
                             tokenInfo.onChainMetadata?.metadata?.data?.name?.slice(0, 4) || // Use first 4 chars of name as fallback
                             'Unknown';
               
-                             // Cache the token metadata
+                             // Cache the token metadata in Redis
                const tokenName = tokenInfo.onChainMetadata?.metadata?.data?.name || 
                                tokenInfo.offChainMetadata?.name || 'Unknown';
                const tokenMetadata = {
@@ -512,12 +542,15 @@ async function enhanceTokenMetadata(transactionData) {
                  name: tokenName
                };
                
-               tokenMetadataCache.set(tokenInfo.mint, {
+               const cacheData = {
                  symbol: symbol,
                  name: tokenName,
                  logo: tokenInfo.offChainMetadata?.logoURI,
                  metadata: tokenMetadata
-               });
+               };
+               
+               // Store in Redis cache
+               setCachedTokenMetadata(tokenInfo.mint, cacheData);
                
                // Update all edges with this mint
                enhancedData.edges.forEach(edge => {
@@ -554,13 +587,15 @@ async function enhanceTokenMetadata(transactionData) {
                              const tokenName = tokenInfo.onChainMetadata?.metadata?.data?.name || 
                                tokenInfo.offChainMetadata?.name || 'Unknown';
                
-               // Cache the token metadata
-               tokenMetadataCache.set(mint, {
+               // Cache the token metadata in Redis
+               const cacheData = {
                  symbol: symbol,
                  name: tokenName,
                  logo: tokenInfo.offChainMetadata?.logoURI,
                  metadata: null
-               });
+               };
+               
+               setCachedTokenMetadata(mint, cacheData);
                
                enhancedData.edges.forEach(edge => {
                  if (edge.mint === mint) {
