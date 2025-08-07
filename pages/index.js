@@ -8,6 +8,7 @@ export default function Home() {
   const [walletAddress, setWalletAddress] = useState('');
   const [transactionData, setTransactionData] = useState(null);
   const [loading, setLoading] = useState(false);
+  const [loadingProgress, setLoadingProgress] = useState('');
   const [error, setError] = useState('');
   const [rateLimit, setRateLimit] = useState(null);
   const [isDarkMode, setIsDarkMode] = useState(true);
@@ -108,12 +109,25 @@ export default function Home() {
     });
 
     setLoading(true);
+    setLoadingProgress('Fetching transactions...');
     setError('');
     setTransactionData(null);
     setRateLimit(null);
     setRecordCount(null);
 
     try {
+      // Show progress for longer time ranges
+      if (timeFilter === '7d' || timeFilter === '30d') {
+        setLoadingProgress('Fetching transactions (this may take a moment for longer time ranges)...');
+        
+        // Set a timeout to show a warning for very long requests
+        setTimeout(() => {
+          if (loading) {
+            setLoadingProgress('Still processing... This wallet may have many transactions. Please be patient.');
+          }
+        }, 15000); // 15 seconds
+      }
+      
       const response = await fetch('/api/transactions', {
         method: 'POST',
         headers: {
@@ -163,6 +177,7 @@ export default function Home() {
       setError(err.message || 'An unexpected error occurred');
     } finally {
       setLoading(false);
+      setLoadingProgress('');
     }
   };
 
@@ -442,7 +457,7 @@ export default function Home() {
             </div>
           )}
 
-          {loading && <LoadingSpinner recordCount={recordCount} />}
+          {loading && <LoadingSpinner recordCount={recordCount} progress={loadingProgress} />}
 
           {transactionData && (
             <div className="results-container">

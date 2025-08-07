@@ -1,10 +1,10 @@
 import React from 'react';
 
-const LoadingSpinner = ({ recordCount = null }) => {
+const LoadingSpinner = ({ recordCount = null, progress = null }) => {
   return (
     <div className="loading-container">
       <div className="spinner"></div>
-      <p>Analyzing blockchain transactions...</p>
+      <p>{progress || 'Analyzing blockchain transactions...'}</p>
       <div className="loading-steps">
         <div className="step">Fetching transaction data</div>
         <div className="step">Processing wallet connections</div>

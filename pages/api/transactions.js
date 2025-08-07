@@ -109,10 +109,25 @@ export default async function handler(req, res) {
       address: cleanAddress.substring(0, 8) + '...' // Log partial address for privacy
     });
 
-    // Build API parameters
+    // Build API parameters with dynamic limits based on time range
+    const getLimitForTimeRange = (timeRange) => {
+      if (!timeRange) return 50;
+      
+      const startTime = new Date(timeRange.start).getTime();
+      const endTime = new Date(timeRange.end).getTime();
+      const daysDiff = (endTime - startTime) / (1000 * 60 * 60 * 24);
+      
+      // Adjust limit based on time range
+      if (daysDiff <= 1) return 100;      // 1 day or less: 100 transactions
+      if (daysDiff <= 3) return 75;       // 3 days or less: 75 transactions
+      if (daysDiff <= 7) return 50;       // 7 days or less: 50 transactions
+      if (daysDiff <= 14) return 30;      // 14 days or less: 30 transactions
+      return 20;                          // 30 days: 20 transactions
+    };
+
     const params = {
       'api-key': process.env.HELIUS_API_KEY,
-      limit: 50,
+      limit: getLimitForTimeRange(timeRange),
     };
 
     // Note: Helius API doesn't support time filtering parameters
@@ -382,6 +397,9 @@ async function processTransactions(transactions, inputAddress) {
   return result;
 }
 
+// Simple in-memory cache for token metadata (resets on server restart)
+const tokenMetadataCache = new Map();
+
 /**
  * Enhance token metadata by fetching additional information for unknown tokens
  */
@@ -389,20 +407,30 @@ async function enhanceTokenMetadata(transactionData) {
   const enhancedData = { ...transactionData };
   const unknownTokens = new Set();
   
-  // Collect all unknown token mints
+  // Collect all unknown token mints (excluding cached ones)
   enhancedData.edges.forEach(edge => {
     if (edge.mint && (edge.tokenSymbol === 'Unknown' || !edge.tokenSymbol)) {
-      unknownTokens.add(edge.mint);
+      // Check if we have this token in cache
+      if (!tokenMetadataCache.has(edge.mint)) {
+        unknownTokens.add(edge.mint);
+      } else {
+        // Use cached metadata
+        const cachedMetadata = tokenMetadataCache.get(edge.mint);
+        edge.tokenSymbol = cachedMetadata.symbol;
+        edge.tokenName = cachedMetadata.name;
+        edge.tokenLogo = cachedMetadata.logo;
+        edge.tokenMetadata = cachedMetadata.metadata;
+      }
     }
   });
 
-  // Fetch metadata for unknown tokens
+  // Fetch metadata for unknown tokens (optimized for performance)
   if (unknownTokens.size > 0) {
     console.log(`Fetching metadata for ${unknownTokens.size} unknown tokens`);
     
     // Batch fetch token metadata for better performance
     const tokenMints = Array.from(unknownTokens);
-    const batchSize = 10; // Helius allows up to 100, but we'll be conservative
+    const batchSize = 5; // Reduced batch size for faster responses
     
     for (let i = 0; i < tokenMints.length; i += batchSize) {
       const batch = tokenMints.slice(i, i + batchSize);
@@ -413,7 +441,7 @@ async function enhanceTokenMetadata(transactionData) {
             'api-key': process.env.HELIUS_API_KEY,
             'mintAccounts': batch
           },
-          timeout: 15000
+          timeout: 8000
         });
 
         if (tokenResponse.data && Array.isArray(tokenResponse.data)) {
@@ -424,22 +452,33 @@ async function enhanceTokenMetadata(transactionData) {
                             tokenInfo.onChainMetadata?.metadata?.data?.name?.slice(0, 4) || // Use first 4 chars of name as fallback
                             'Unknown';
               
-              // Update all edges with this mint
-              enhancedData.edges.forEach(edge => {
-                if (edge.mint === tokenInfo.mint) {
-                  edge.tokenSymbol = symbol;
-                  edge.tokenName = tokenInfo.onChainMetadata?.metadata?.data?.name || 
-                                  tokenInfo.offChainMetadata?.name || 'Unknown';
-                  edge.tokenLogo = tokenInfo.offChainMetadata?.logoURI;
-                  edge.tokenMetadata = {
-                    decimals: tokenInfo.onChainMetadata?.metadata?.data?.decimals,
-                    supply: tokenInfo.onChainMetadata?.metadata?.data?.supply,
-                    collection: tokenInfo.onChainMetadata?.metadata?.data?.collection,
-                    symbol: symbol,
-                    name: edge.tokenName
-                  };
-                }
-              });
+                             // Cache the token metadata
+               const tokenName = tokenInfo.onChainMetadata?.metadata?.data?.name || 
+                               tokenInfo.offChainMetadata?.name || 'Unknown';
+               const tokenMetadata = {
+                 decimals: tokenInfo.onChainMetadata?.metadata?.data?.decimals,
+                 supply: tokenInfo.onChainMetadata?.metadata?.data?.supply,
+                 collection: tokenInfo.onChainMetadata?.metadata?.data?.collection,
+                 symbol: symbol,
+                 name: tokenName
+               };
+               
+               tokenMetadataCache.set(tokenInfo.mint, {
+                 symbol: symbol,
+                 name: tokenName,
+                 logo: tokenInfo.offChainMetadata?.logoURI,
+                 metadata: tokenMetadata
+               });
+               
+               // Update all edges with this mint
+               enhancedData.edges.forEach(edge => {
+                 if (edge.mint === tokenInfo.mint) {
+                   edge.tokenSymbol = symbol;
+                   edge.tokenName = tokenName;
+                   edge.tokenLogo = tokenInfo.offChainMetadata?.logoURI;
+                   edge.tokenMetadata = tokenMetadata;
+                 }
+               });
             }
           });
         }
@@ -454,7 +493,7 @@ async function enhanceTokenMetadata(transactionData) {
                 'api-key': process.env.HELIUS_API_KEY,
                 'mintAccounts': [mint]
               },
-              timeout: 5000
+              timeout: 3000
             });
 
             if (individualResponse.data && individualResponse.data[0]) {
@@ -463,14 +502,24 @@ async function enhanceTokenMetadata(transactionData) {
                             tokenInfo.offChainMetadata?.symbol ||
                             'Unknown';
               
-              enhancedData.edges.forEach(edge => {
-                if (edge.mint === mint) {
-                  edge.tokenSymbol = symbol;
-                  edge.tokenName = tokenInfo.onChainMetadata?.metadata?.data?.name || 
-                                  tokenInfo.offChainMetadata?.name || 'Unknown';
-                  edge.tokenLogo = tokenInfo.offChainMetadata?.logoURI;
-                }
-              });
+                             const tokenName = tokenInfo.onChainMetadata?.metadata?.data?.name || 
+                               tokenInfo.offChainMetadata?.name || 'Unknown';
+               
+               // Cache the token metadata
+               tokenMetadataCache.set(mint, {
+                 symbol: symbol,
+                 name: tokenName,
+                 logo: tokenInfo.offChainMetadata?.logoURI,
+                 metadata: null
+               });
+               
+               enhancedData.edges.forEach(edge => {
+                 if (edge.mint === mint) {
+                   edge.tokenSymbol = symbol;
+                   edge.tokenName = tokenName;
+                   edge.tokenLogo = tokenInfo.offChainMetadata?.logoURI;
+                 }
+               });
             }
           } catch (individualError) {
             console.log(`Failed to fetch metadata for individual token ${mint}:`, individualError.message);
