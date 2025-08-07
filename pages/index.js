@@ -152,6 +152,30 @@ export default function Home() {
         nodesLength: data?.nodes?.length || 0,
         data: data
       });
+      
+      // Debug token metadata
+      if (data?.edges) {
+        const edgesWithTokens = data.edges.filter(edge => edge.mint);
+        const edgesWithMetadata = data.edges.filter(edge => edge.tokenMetadata);
+        const edgesWithSymbol = data.edges.filter(edge => edge.tokenSymbol && edge.tokenSymbol !== 'Unknown');
+        
+        console.log('Token metadata debug:', {
+          totalEdges: data.edges.length,
+          edgesWithTokens: edgesWithTokens.length,
+          edgesWithMetadata: edgesWithMetadata.length,
+          edgesWithSymbol: edgesWithSymbol.length
+        });
+        
+        if (edgesWithTokens.length > 0) {
+          console.log('Sample edge token data:', {
+            mint: edgesWithTokens[0].mint,
+            tokenSymbol: edgesWithTokens[0].tokenSymbol,
+            tokenName: edgesWithTokens[0].tokenName,
+            hasMetadata: !!edgesWithTokens[0].tokenMetadata,
+            metadata: edgesWithTokens[0].tokenMetadata
+          });
+        }
+      }
 
       // Handle rate limiting
       if (response.status === 429) {

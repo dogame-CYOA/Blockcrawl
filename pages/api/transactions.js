@@ -550,7 +550,7 @@ async function enhanceTokenMetadata(transactionData) {
   // Collect all unknown token mints (checking Redis cache first)
   const cachePromises = [];
   enhancedData.edges.forEach(edge => {
-    if (edge.mint && (edge.tokenSymbol === 'Unknown' || !edge.tokenSymbol)) {
+    if (edge.mint && (edge.tokenSymbol === null || !edge.tokenSymbol)) {
       cachePromises.push(
         getCachedTokenMetadata(edge.mint).then(cached => {
           if (cached) {
@@ -586,10 +586,14 @@ async function enhanceTokenMetadata(transactionData) {
         const batchStartTime = Date.now();
         console.log(`[DEBUG] enhanceTokenMetadata: Fetching batch ${i/batchSize + 1} (${batch.length} tokens)`);
         
-        const tokenResponse = await axios.get(`https://api.helius.xyz/v0/token-metadata`, {
-          params: {
-            'api-key': process.env.HELIUS_API_KEY,
-            'mintAccounts': batch
+        const tokenResponse = await axios.post(`https://api.helius.xyz/v0/token-metadata`, {
+          mintAccounts: batch,
+          includeOffChain: true,
+          disableCache: false
+        }, {
+          headers: {
+            'Authorization': `Bearer ${process.env.HELIUS_API_KEY}`,
+            'Content-Type': 'application/json'
           },
           timeout: 8000
         });
@@ -646,10 +650,14 @@ async function enhanceTokenMetadata(transactionData) {
         for (const mint of batch) {
           try {
             const individualStartTime = Date.now();
-            const individualResponse = await axios.get(`https://api.helius.xyz/v0/token-metadata`, {
-              params: {
-                'api-key': process.env.HELIUS_API_KEY,
-                'mintAccounts': [mint]
+            const individualResponse = await axios.post(`https://api.helius.xyz/v0/token-metadata`, {
+              mintAccounts: [mint],
+              includeOffChain: true,
+              disableCache: false
+            }, {
+              headers: {
+                'Authorization': `Bearer ${process.env.HELIUS_API_KEY}`,
+                'Content-Type': 'application/json'
               },
               timeout: 3000
             });
@@ -697,6 +705,27 @@ async function enhanceTokenMetadata(transactionData) {
 
   const enhanceEndTime = Date.now();
   console.log(`[DEBUG] enhanceTokenMetadata: Completed in ${enhanceEndTime - enhanceStartTime}ms`);
+  
+  // Debug: Log token metadata status
+  const edgesWithTokens = enhancedData.edges.filter(edge => edge.mint);
+  const edgesWithMetadata = enhancedData.edges.filter(edge => edge.tokenMetadata);
+  const edgesWithSymbol = enhancedData.edges.filter(edge => edge.tokenSymbol && edge.tokenSymbol !== 'Unknown');
+  
+  console.log(`[DEBUG] Token metadata summary:`);
+  console.log(`- Total edges with tokens: ${edgesWithTokens.length}`);
+  console.log(`- Edges with metadata: ${edgesWithMetadata.length}`);
+  console.log(`- Edges with symbol: ${edgesWithSymbol.length}`);
+  
+  // Log a few examples
+  if (edgesWithTokens.length > 0) {
+    console.log(`[DEBUG] Sample edge token data:`, {
+      mint: edgesWithTokens[0].mint,
+      tokenSymbol: edgesWithTokens[0].tokenSymbol,
+      tokenName: edgesWithTokens[0].tokenName,
+      hasMetadata: !!edgesWithTokens[0].tokenMetadata
+    });
+  }
+  
   return enhancedData;
 }
 
@@ -726,7 +755,7 @@ function processTokenTransfer(transfer, tx, txIndex, transferIndex, nodes, edges
         mint: transfer.mint,
         signature: tx.signature,
         timestamp: tx.timestamp,
-        tokenSymbol: transfer.tokenSymbol || 'Unknown',
+        tokenSymbol: transfer.tokenSymbol || null,
         uiAmount: transfer.uiTokenAmount?.uiAmount || transfer.tokenAmount,
         decimals: transfer.uiTokenAmount?.decimals || 0,
         isDirectTransfer: isInputInvolved,

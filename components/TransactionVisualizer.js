@@ -500,9 +500,12 @@ const TransactionVisualizer = ({ data, inputAddress, isDarkMode = true, trafficF
             ) : (
               <div className="tooltip-details">
                 <span><strong>Amount:</strong> {hoveredEdge.uiAmount || hoveredEdge.amount}</span>
-                <span><strong>Token:</strong> {hoveredEdge.tokenMetadata?.name || hoveredEdge.tokenSymbol || 'Unknown'}</span>
+                <span><strong>Token:</strong> {hoveredEdge.tokenMetadata?.name || hoveredEdge.tokenName || hoveredEdge.tokenSymbol || 'Unknown'}</span>
                 {hoveredEdge.tokenMetadata?.symbol && (
                   <span><strong>Symbol:</strong> {hoveredEdge.tokenMetadata.symbol}</span>
+                )}
+                {hoveredEdge.mint && (
+                  <span><strong>Mint:</strong> {hoveredEdge.mint.slice(0, 8)}...{hoveredEdge.mint.slice(-8)}</span>
                 )}
               </div>
             )}
