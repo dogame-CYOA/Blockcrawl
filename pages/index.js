@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import Head from 'next/head';
 import TransactionVisualizer from '../components/TransactionVisualizer';
 import TransactionDetails from '../components/TransactionDetails';
@@ -10,6 +10,24 @@ export default function Home() {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
   const [rateLimit, setRateLimit] = useState(null);
+  const [isDarkMode, setIsDarkMode] = useState(true);
+
+  // Load theme preference from localStorage
+  useEffect(() => {
+    const savedTheme = localStorage.getItem('theme');
+    if (savedTheme) {
+      setIsDarkMode(savedTheme === 'dark');
+    }
+  }, []);
+
+  // Save theme preference to localStorage
+  useEffect(() => {
+    localStorage.setItem('theme', isDarkMode ? 'dark' : 'light');
+  }, [isDarkMode]);
+
+  const toggleTheme = () => {
+    setIsDarkMode(!isDarkMode);
+  };
 
   const handleSubmit = async (e) => {
     e.preventDefault();
@@ -93,10 +111,21 @@ export default function Home() {
         <meta httpEquiv="X-XSS-Protection" content="1; mode=block" />
       </Head>
 
-      <div className="container">
+      <div className={`container ${isDarkMode ? 'dark' : 'light'}`}>
         <header className="header">
-          <h1>🔍 Solana Transaction Visualizer</h1>
-          <p>Explore blockchain connections and analyze wallet transactions</p>
+          <div className="header-content">
+            <div className="header-left">
+              <h1>🔍 Solana Transaction Visualizer</h1>
+              <p>Explore blockchain connections and analyze wallet transactions</p>
+            </div>
+            <button 
+              className="theme-toggle"
+              onClick={toggleTheme}
+              aria-label={`Switch to ${isDarkMode ? 'light' : 'dark'} mode`}
+            >
+              {isDarkMode ? '☀️' : '🌙'}
+            </button>
+          </div>
         </header>
 
         <main className="main">
@@ -139,6 +168,7 @@ export default function Home() {
               <TransactionDetails 
                 data={transactionData} 
                 inputAddress={walletAddress}
+                isDarkMode={isDarkMode}
               />
             </div>
           )}
@@ -164,23 +194,88 @@ export default function Home() {
       <style jsx>{`
         .container {
           min-height: 100vh;
+          font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+          transition: all 0.3s ease;
+        }
+
+        .container.dark {
           background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
           color: white;
-          font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+        }
+
+        .container.light {
+          background: linear-gradient(135deg, #f8fafc 0%, #e2e8f0 100%);
+          color: #1e293b;
         }
 
         .header {
-          text-align: center;
           padding: 2rem 1rem;
-          background: rgba(0, 0, 0, 0.1);
           backdrop-filter: blur(10px);
+          transition: all 0.3s ease;
+        }
+
+        .container.dark .header {
+          background: rgba(0, 0, 0, 0.1);
+        }
+
+        .container.light .header {
+          background: rgba(255, 255, 255, 0.1);
+        }
+
+        .header-content {
+          display: flex;
+          justify-content: space-between;
+          align-items: center;
+          max-width: 1200px;
+          margin: 0 auto;
+        }
+
+        .header-left {
+          text-align: left;
+        }
+
+        .theme-toggle {
+          background: rgba(255, 255, 255, 0.1);
+          border: 1px solid rgba(255, 255, 255, 0.2);
+          border-radius: 50%;
+          width: 50px;
+          height: 50px;
+          cursor: pointer;
+          font-size: 1.5rem;
+          transition: all 0.3s ease;
+          backdrop-filter: blur(10px);
+        }
+
+        .container.light .theme-toggle {
+          background: rgba(0, 0, 0, 0.1);
+          border: 1px solid rgba(0, 0, 0, 0.2);
+        }
+
+        .theme-toggle:hover {
+          transform: scale(1.1);
+          background: rgba(255, 255, 255, 0.2);
+        }
+
+        .container.light .theme-toggle:hover {
+          background: rgba(0, 0, 0, 0.2);
         }
 
         .header h1 {
           margin: 0 0 0.5rem 0;
           font-size: 2.5rem;
           font-weight: 700;
+          transition: all 0.3s ease;
+        }
+
+        .container.dark .header h1 {
           background: linear-gradient(45deg, #fff, #f0f0f0);
+          -webkit-background-clip: text;
+          -webkit-text-fill-color: transparent;
+          background-clip: text;
+        }
+
+        .container.light .header h1 {
+          background: linear-gradient(45deg, #1e293b, #334155);
           -webkit-background-clip: text;
           -webkit-text-fill-color: transparent;
           background-clip: text;
@@ -189,7 +284,15 @@ export default function Home() {
         .header p {
           margin: 0;
           font-size: 1.1rem;
+          transition: all 0.3s ease;
+        }
+
+        .container.dark .header p {
           opacity: 0.9;
+        }
+
+        .container.light .header p {
+          opacity: 0.7;
         }
 
         .main {
@@ -215,20 +318,38 @@ export default function Home() {
           border: none;
           border-radius: 50px;
           font-size: 1rem;
-          background: rgba(255, 255, 255, 0.1);
-          color: white;
           backdrop-filter: blur(10px);
           transition: all 0.3s ease;
         }
 
-        .wallet-input::placeholder {
+        .container.dark .wallet-input {
+          background: rgba(255, 255, 255, 0.1);
+          color: white;
+        }
+
+        .container.light .wallet-input {
+          background: rgba(0, 0, 0, 0.05);
+          color: #1e293b;
+        }
+
+        .container.dark .wallet-input::placeholder {
           color: rgba(255, 255, 255, 0.7);
         }
 
-        .wallet-input:focus {
+        .container.light .wallet-input::placeholder {
+          color: rgba(30, 41, 59, 0.7);
+        }
+
+        .container.dark .wallet-input:focus {
           outline: none;
           background: rgba(255, 255, 255, 0.2);
           box-shadow: 0 0 20px rgba(255, 255, 255, 0.3);
+        }
+
+        .container.light .wallet-input:focus {
+          outline: none;
+          background: rgba(0, 0, 0, 0.1);
+          box-shadow: 0 0 20px rgba(0, 0, 0, 0.2);
         }
 
         .search-button {
@@ -256,8 +377,6 @@ export default function Home() {
         }
 
         .error-message {
-          background: rgba(255, 107, 107, 0.2);
-          border: 1px solid rgba(255, 107, 107, 0.5);
           border-radius: 10px;
           padding: 1rem;
           margin: 1rem 0;
@@ -265,14 +384,37 @@ export default function Home() {
           backdrop-filter: blur(10px);
         }
 
+        .container.dark .error-message {
+          background: rgba(255, 107, 107, 0.2);
+          border: 1px solid rgba(255, 107, 107, 0.5);
+          color: white;
+        }
+
+        .container.light .error-message {
+          background: rgba(239, 68, 68, 0.1);
+          border: 1px solid rgba(239, 68, 68, 0.3);
+          color: #dc2626;
+        }
+
         .results-container {
-          background: rgba(255, 255, 255, 0.1);
           border-radius: 20px;
           padding: 2rem;
           margin-top: 2rem;
           backdrop-filter: blur(10px);
+          transition: all 0.3s ease;
+        }
+
+        .container.dark .results-container {
+          background: rgba(255, 255, 255, 0.1);
           border: 1px solid rgba(255, 255, 255, 0.2);
           color: white;
+        }
+
+        .container.light .results-container {
+          background: rgba(255, 255, 255, 0.8);
+          border: 1px solid rgba(0, 0, 0, 0.1);
+          color: #1e293b;
+          box-shadow: 0 10px 25px rgba(0, 0, 0, 0.1);
         }
 
         .results-container h1,
@@ -582,18 +724,37 @@ export default function Home() {
         .footer {
           text-align: center;
           padding: 2rem 1rem;
-          background: rgba(0, 0, 0, 0.1);
           backdrop-filter: blur(10px);
+          transition: all 0.3s ease;
+        }
+
+        .container.dark .footer {
+          background: rgba(0, 0, 0, 0.1);
+        }
+
+        .container.light .footer {
+          background: rgba(255, 255, 255, 0.1);
         }
 
         .footer a {
-          color: #ffd700;
           text-decoration: none;
           transition: color 0.3s ease;
         }
 
-        .footer a:hover {
+        .container.dark .footer a {
+          color: #ffd700;
+        }
+
+        .container.light .footer a {
+          color: #059669;
+        }
+
+        .container.dark .footer a:hover {
           color: #fff;
+        }
+
+        .container.light .footer a:hover {
+          color: #047857;
         }
 
         @media (max-width: 768px) {
