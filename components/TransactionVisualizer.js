@@ -333,6 +333,34 @@ const TransactionVisualizer = ({ data, inputAddress, isDarkMode = true, trafficF
           <div className="legend-color sns"></div>
           <span>🌐 SNS Domain</span>
         </div>
+        <div className="legend-item">
+          <div className="legend-color token"></div>
+          <span>🪙 Token</span>
+        </div>
+        <div className="legend-item">
+          <div className="legend-color lending"></div>
+          <span>💰 Lending</span>
+        </div>
+        <div className="legend-item">
+          <div className="legend-color yield"></div>
+          <span>🌾 Yield</span>
+        </div>
+        <div className="legend-item">
+          <div className="legend-color gaming"></div>
+          <span>🎮 Gaming</span>
+        </div>
+        <div className="legend-item">
+          <div className="legend-color defi"></div>
+          <span>🏛️ DeFi</span>
+        </div>
+        <div className="legend-item">
+          <div className="legend-color oracle"></div>
+          <span>🔮 Oracle</span>
+        </div>
+        <div className="legend-item">
+          <div className="legend-color dao"></div>
+          <span>🏛️ DAO</span>
+        </div>
       </div>
       
       <div ref={containerRef} className="cytoscape-container" />
@@ -388,12 +416,18 @@ const TransactionVisualizer = ({ data, inputAddress, isDarkMode = true, trafficF
             {hoveredEdge.type === 'NFT' ? (
               <div className="tooltip-details">
                 <span><strong>Amount:</strong> 1 NFT</span>
-                <span><strong>Token:</strong> {hoveredEdge.tokenSymbol || 'Unknown'}</span>
+                <span><strong>Token:</strong> {hoveredEdge.tokenMetadata?.name || hoveredEdge.tokenSymbol || 'Unknown'}</span>
+                {hoveredEdge.tokenMetadata?.collection && (
+                  <span><strong>Collection:</strong> {hoveredEdge.tokenMetadata.collection.name}</span>
+                )}
               </div>
             ) : (
               <div className="tooltip-details">
                 <span><strong>Amount:</strong> {hoveredEdge.uiAmount || hoveredEdge.amount}</span>
-                <span><strong>Token:</strong> {hoveredEdge.tokenSymbol || 'Unknown'}</span>
+                <span><strong>Token:</strong> {hoveredEdge.tokenMetadata?.name || hoveredEdge.tokenSymbol || 'Unknown'}</span>
+                {hoveredEdge.tokenMetadata?.symbol && (
+                  <span><strong>Symbol:</strong> {hoveredEdge.tokenMetadata.symbol}</span>
+                )}
               </div>
             )}
             {hoveredEdge.signature && (
@@ -550,6 +584,34 @@ const TransactionVisualizer = ({ data, inputAddress, isDarkMode = true, trafficF
         
         .legend-color.sns {
           background-color: #98D8C8;
+        }
+        
+        .legend-color.token {
+          background-color: #FFD93D;
+        }
+        
+        .legend-color.lending {
+          background-color: #6C5CE7;
+        }
+        
+        .legend-color.yield {
+          background-color: #00B894;
+        }
+        
+        .legend-color.gaming {
+          background-color: #E84393;
+        }
+        
+        .legend-color.defi {
+          background-color: #74B9FF;
+        }
+        
+        .legend-color.oracle {
+          background-color: #A29BFE;
+        }
+        
+        .legend-color.dao {
+          background-color: #FD79A8;
         }
         
         .stats {

@@ -1,5 +1,6 @@
 import axios from 'axios';
 import { entityIdentifier } from '../../lib/entity-identifier';
+import { checkRateLimit, getClientIP } from '../../lib/ratelimit';
 
 /**
  * Serverless function to fetch transaction data securely
@@ -11,11 +12,24 @@ export default async function handler(req, res) {
   res.setHeader('X-Frame-Options', 'DENY');
   res.setHeader('X-XSS-Protection', '1; mode=block');
   res.setHeader('Referrer-Policy', 'strict-origin-when-cross-origin');
+  
+  // Check request size limit (1MB)
+  const contentLength = parseInt(req.headers['content-length'] || '0');
+  if (contentLength > 1024 * 1024) {
+    return res.status(413).json({ error: 'Request too large' });
+  }
 
-  // Handle CORS
-  res.setHeader('Access-Control-Allow-Origin', '*');
+  // Handle CORS - Restrict to your domain in production
+  const allowedOrigins = process.env.NODE_ENV === 'production' 
+    ? ['https://your-domain.vercel.app', 'https://your-domain.com'] 
+    : ['http://localhost:3000'];
+  
+  const origin = req.headers.origin;
+  if (allowedOrigins.includes(origin)) {
+    res.setHeader('Access-Control-Allow-Origin', origin);
+  }
   res.setHeader('Access-Control-Allow-Methods', 'POST, OPTIONS');
-  res.setHeader('Access-Control-Allow-Headers', 'Content-Type');
+  res.setHeader('Access-Control-Allow-Headers', 'Content-Type, Authorization');
 
   // Handle preflight requests
   if (req.method === 'OPTIONS') {
@@ -27,6 +41,17 @@ export default async function handler(req, res) {
     return res.status(405).json({ 
       error: 'Method not allowed',
       allowedMethods: ['POST']
+    });
+  }
+
+  // Check rate limiting
+  const clientIP = getClientIP(req);
+  const rateLimitResult = await checkRateLimit(clientIP);
+  
+  if (!rateLimitResult.success) {
+    return res.status(429).json({
+      error: 'Rate limit exceeded',
+      retryAfter: Math.ceil((rateLimitResult.reset - new Date()) / 1000)
     });
   }
 
@@ -55,7 +80,7 @@ export default async function handler(req, res) {
     }
 
     // Clean and validate Solana address format
-    const cleanAddress = address.trim();
+    const cleanAddress = address.trim().replace(/[^1-9A-HJ-NP-Za-km-z]/g, '');
     
     // Basic Solana address validation (44 characters, base58)
     const solanaAddressRegex = /^[1-9A-HJ-NP-Za-km-z]{32,44}$/;
@@ -75,6 +100,14 @@ export default async function handler(req, res) {
 
     console.log('API Key configured, making direct Helius API call...');
     console.log('Fetching transactions for address:', cleanAddress);
+    
+    // Log request for security monitoring
+    console.log('Request details:', {
+      ip: getClientIP(req),
+      userAgent: req.headers['user-agent'],
+      timestamp: new Date().toISOString(),
+      address: cleanAddress.substring(0, 8) + '...' // Log partial address for privacy
+    });
 
     // Build API parameters
     const params = {
@@ -206,34 +239,64 @@ async function processTransactions(transactions, inputAddress) {
     }
   });
 
-  // Get entity information for all unique addresses
-  const uniqueAddresses = Array.from(nodes.keys());
-  const entityInfo = await entityIdentifier.batchResolveAddresses(uniqueAddresses);
+      // Get entity information for all unique addresses
+    const uniqueAddresses = Array.from(nodes.keys());
+    const entityInfo = await entityIdentifier.batchResolveAddresses(uniqueAddresses);
 
-  // Enhance nodes with entity information
-  const enhancedNodes = Array.from(nodes.values()).map(node => {
-    const entity = entityInfo[node.id];
-    if (entity) {
-      return {
-        ...node,
-        entity: {
-          name: entity.name,
-          type: entity.type,
-          description: entity.description,
-          icon: entityIdentifier.getEntityIcon(entity.type),
-          color: entityIdentifier.getEntityColor(entity.type)
-        }
-      };
-    }
-    return node;
-  });
+    // Get token metadata for all unique mint addresses
+    const uniqueMints = new Set();
+    edges.forEach(edge => {
+      if (edge.mint) {
+        uniqueMints.add(edge.mint);
+      }
+    });
+    
+    const tokenMetadata = {};
+    const mintPromises = Array.from(uniqueMints).map(async (mint) => {
+      const metadata = await entityIdentifier.getTokenMetadata(mint);
+      if (metadata) {
+        tokenMetadata[mint] = metadata;
+      }
+    });
+    await Promise.allSettled(mintPromises);
+
+    // Enhance nodes with entity information
+    const enhancedNodes = Array.from(nodes.values()).map(node => {
+      const entity = entityInfo[node.id];
+      if (entity) {
+        return {
+          ...node,
+          entity: {
+            name: entity.name,
+            type: entity.type,
+            description: entity.description,
+            icon: entityIdentifier.getEntityIcon(entity.type),
+            color: entityIdentifier.getEntityColor(entity.type),
+            metadata: entity.metadata || null
+          }
+        };
+      }
+      return node;
+    });
+
+    // Enhance edges with token metadata
+    const enhancedEdges = edges.map(edge => {
+      if (edge.mint && tokenMetadata[edge.mint]) {
+        return {
+          ...edge,
+          tokenMetadata: tokenMetadata[edge.mint]
+        };
+      }
+      return edge;
+    });
 
   const result = {
     nodes: enhancedNodes,
-    edges: edges,
+    edges: enhancedEdges,
     totalTransactions: transactions.length,
     processedAt: new Date().toISOString(),
-    entityInfo: entityInfo
+    entityInfo: entityInfo,
+    tokenMetadata: tokenMetadata
   };
 
   console.log('Processed result:', {
