@@ -1,9 +1,8 @@
 import { HeliusClient } from '../../lib/helius';
-import { checkRateLimit, getClientIP } from '../../lib/ratelimit';
 
 /**
  * Serverless function to fetch transaction data securely
- * Enhanced with rate limiting and better error handling
+ * Simplified version for debugging
  */
 export default async function handler(req, res) {
   // Set security headers
@@ -27,19 +26,6 @@ export default async function handler(req, res) {
     return res.status(405).json({ 
       error: 'Method not allowed',
       allowedMethods: ['POST']
-    });
-  }
-
-  // Rate limiting
-  const clientIP = getClientIP(req);
-  const rateLimitResult = await checkRateLimit(clientIP);
-  
-  if (!rateLimitResult.success) {
-    return res.status(429).json({
-      error: 'Rate limit exceeded',
-      retryAfter: Math.ceil((rateLimitResult.reset - Date.now()) / 1000),
-      limit: rateLimitResult.limit,
-      remaining: rateLimitResult.remaining
     });
   }
 
@@ -79,26 +65,37 @@ export default async function handler(req, res) {
       });
     }
 
+    console.log('API Key configured, initializing Helius client...');
+
     // Initialize Helius client
     const heliusClient = new HeliusClient(process.env.HELIUS_API_KEY);
+
+    console.log('Fetching transactions for address:', cleanAddress);
 
     // Fetch transaction data
     const transactionData = await heliusClient.getTransactions(cleanAddress);
 
-    // Return success response with rate limit info
+    console.log('Transaction data fetched successfully:', {
+      nodes: transactionData.nodes?.length || 0,
+      edges: transactionData.edges?.length || 0
+    });
+
+    // Return success response
     return res.status(200).json({
       ...transactionData,
       requestInfo: {
-        rateLimit: {
-          limit: rateLimitResult.limit,
-          remaining: rateLimitResult.remaining,
-          reset: rateLimitResult.reset
-        }
+        address: cleanAddress,
+        timestamp: new Date().toISOString()
       }
     });
 
   } catch (error) {
-    console.error('API Error:', error);
+    console.error('API Error Details:', {
+      message: error.message,
+      stack: error.stack,
+      response: error.response?.data,
+      status: error.response?.status
+    });
 
     // Handle specific Helius API errors
     if (error.response?.status === 429) {
@@ -120,9 +117,10 @@ export default async function handler(req, res) {
       });
     }
 
-    // Generic error response
+    // Generic error response with more details for debugging
     return res.status(500).json({
-      error: 'Failed to fetch transaction data. Please try again later.'
+      error: 'Failed to fetch transaction data. Please try again later.',
+      details: process.env.NODE_ENV === 'development' ? error.message : undefined
     });
   }
 } 
