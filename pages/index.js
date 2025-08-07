@@ -272,6 +272,182 @@ export default function Home() {
           margin-top: 2rem;
           backdrop-filter: blur(10px);
           border: 1px solid rgba(255, 255, 255, 0.2);
+          color: white;
+        }
+
+        .results-container h1,
+        .results-container h2,
+        .results-container h3,
+        .results-container h4,
+        .results-container h5,
+        .results-container h6,
+        .results-container p,
+        .results-container span,
+        .results-container div {
+          color: white;
+        }
+
+        .results-container .transaction-details {
+          color: white;
+        }
+
+        .results-container .transaction-details h2 {
+          color: white;
+          margin-bottom: 1rem;
+        }
+
+        .results-container .transaction-details p {
+          color: white;
+        }
+
+        .results-container .transaction-item {
+          color: white;
+          background: rgba(255, 255, 255, 0.05);
+          border-radius: 10px;
+          padding: 1rem;
+          margin-bottom: 1rem;
+          border: 1px solid rgba(255, 255, 255, 0.1);
+        }
+
+        .results-container .transaction-header {
+          color: white;
+        }
+
+        .results-container .transaction-type {
+          color: white;
+          background: rgba(147, 51, 234, 0.3);
+          padding: 0.25rem 0.5rem;
+          border-radius: 5px;
+          font-size: 0.8rem;
+          font-weight: bold;
+        }
+
+        .results-container .transaction-direction {
+          color: white;
+          background: rgba(59, 130, 246, 0.3);
+          padding: 0.25rem 0.5rem;
+          border-radius: 5px;
+          font-size: 0.8rem;
+        }
+
+        .results-container .transaction-path {
+          color: white;
+          margin: 0.5rem 0;
+        }
+
+        .results-container .wallet-address {
+          color: white;
+        }
+
+        .results-container .wallet-address .label {
+          color: rgba(255, 255, 255, 0.8);
+        }
+
+        .results-container .wallet-address .address {
+          color: white;
+          font-family: 'Courier New', monospace;
+          font-weight: bold;
+        }
+
+        .results-container .badge {
+          color: white;
+          background: rgba(16, 185, 129, 0.3);
+          padding: 0.1rem 0.3rem;
+          border-radius: 3px;
+          font-size: 0.7rem;
+        }
+
+        .results-container .transaction-details-row {
+          color: white;
+        }
+
+        .results-container .detail-item {
+          color: white;
+        }
+
+        .results-container .detail-label {
+          color: rgba(255, 255, 255, 0.8);
+        }
+
+        .results-container .detail-value {
+          color: white;
+          font-weight: bold;
+        }
+
+        .results-container .mint {
+          color: rgba(255, 255, 255, 0.7);
+          font-family: 'Courier New', monospace;
+          font-size: 0.8rem;
+        }
+
+        .results-container .amount {
+          color: #10b981;
+          font-weight: bold;
+        }
+
+        .results-container .no-transactions {
+          color: white;
+          text-align: center;
+          padding: 2rem;
+        }
+
+        .results-container .no-transactions p {
+          color: rgba(255, 255, 255, 0.8);
+        }
+
+        .results-container .tab-navigation {
+          display: flex;
+          gap: 0.5rem;
+          margin-bottom: 1rem;
+          border-bottom: 1px solid rgba(255, 255, 255, 0.2);
+          padding-bottom: 0.5rem;
+        }
+
+        .results-container .tab-button {
+          background: rgba(255, 255, 255, 0.1);
+          border: 1px solid rgba(255, 255, 255, 0.2);
+          color: white;
+          padding: 0.5rem 1rem;
+          border-radius: 5px;
+          cursor: pointer;
+          transition: all 0.3s ease;
+          font-size: 0.9rem;
+        }
+
+        .results-container .tab-button:hover {
+          background: rgba(255, 255, 255, 0.2);
+        }
+
+        .results-container .tab-button.active {
+          background: rgba(147, 51, 234, 0.3);
+          border-color: rgba(147, 51, 234, 0.5);
+          color: white;
+        }
+
+        .results-container .tab-content {
+          color: white;
+        }
+
+        .results-container .arrow {
+          color: white;
+          font-size: 1.2rem;
+          margin: 0 0.5rem;
+        }
+
+        .results-container .transaction-type.nft {
+          background: rgba(236, 72, 153, 0.3);
+        }
+
+        .results-container .transaction-type.spl_token {
+          background: rgba(59, 130, 246, 0.3);
+        }
+
+        .results-container .transaction-direction.incoming {
+          background: rgba(16, 185, 129, 0.3);
+        }
+
+        .results-container .transaction-direction.outgoing {
+          background: rgba(239, 68, 68, 0.3);
         }
 
         .rate-limit-info {
