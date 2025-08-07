@@ -127,7 +127,10 @@ export default async function handler(req, res) {
 
     // Use the enriched transactions endpoint for better data
     const response = await axios.get(`https://api.helius.xyz/v0/addresses/${cleanAddress}/transactions`, {
-      params,
+      params: {
+        ...params,
+        'transactionTypes': ['TRANSFER', 'NFT_SALE', 'NFT_MINT', 'SWAP', 'TOKEN_MINT', 'TOKEN_BURN', 'NFT_LISTING', 'NFT_CANCEL_LISTING', 'NFT_BID', 'NFT_CANCEL_BID']
+      },
       timeout: 60000, // Increased timeout to 60 seconds
     });
 
@@ -167,8 +170,11 @@ export default async function handler(req, res) {
       console.log(`Filtered ${response.data?.length || 0} transactions to ${filteredTransactions.length} within time range`);
     }
 
-    // Process the transaction data
-    const transactionData = await processTransactions(filteredTransactions, cleanAddress);
+      // Process the transaction data
+  const transactionData = await processTransactions(filteredTransactions, cleanAddress);
+
+  // Enhance token metadata by fetching additional info for unknown tokens
+  const enhancedData = await enhanceTokenMetadata(transactionData);
 
     console.log('Transaction data processed successfully:', {
       nodes: transactionData.nodes?.length || 0,
@@ -177,7 +183,7 @@ export default async function handler(req, res) {
 
     // Return success response
     return res.status(200).json({
-      ...transactionData,
+      ...enhancedData,
       requestInfo: {
         address: cleanAddress,
         timestamp: new Date().toISOString()
@@ -261,41 +267,50 @@ async function processTransactions(transactions, inputAddress) {
       tx.nativeTransfers.forEach((transfer, transferIndex) => {
         processNativeTransfer(transfer, tx, index, transferIndex, nodes, edges, inputAddress);
       });
-          } else {
-        console.log(`Transaction ${index} has no recognized transfer format. Keys:`, Object.keys(tx));
-        // Try to find transfers in other possible locations
-        if (tx.transfers) {
-          console.log(`Transaction ${index} has transfers array:`, tx.transfers.length);
-          tx.transfers.forEach((transfer, transferIndex) => {
-            if (transfer.type === 'token' || transfer.mint) {
-              processTokenTransfer(transfer, tx, index, transferIndex, nodes, edges, inputAddress);
-            } else if (transfer.type === 'native' || transfer.amount) {
-              processNativeTransfer(transfer, tx, index, transferIndex, nodes, edges, inputAddress);
-            }
-          });
-        }
-        
-        // Check for other possible transfer formats
-        if (tx.tokenTransfers && Array.isArray(tx.tokenTransfers)) {
-          console.log(`Transaction ${index} has tokenTransfers array:`, tx.tokenTransfers.length);
-          tx.tokenTransfers.forEach((transfer, transferIndex) => {
+    } else {
+      console.log(`Transaction ${index} has no recognized transfer format. Keys:`, Object.keys(tx));
+      // Try to find transfers in other possible locations
+      if (tx.transfers) {
+        console.log(`Transaction ${index} has transfers array:`, tx.transfers.length);
+        tx.transfers.forEach((transfer, transferIndex) => {
+          if (transfer.type === 'token' || transfer.mint) {
             processTokenTransfer(transfer, tx, index, transferIndex, nodes, edges, inputAddress);
-          });
-        }
-        
-        if (tx.nativeTransfers && Array.isArray(tx.nativeTransfers)) {
-          console.log(`Transaction ${index} has nativeTransfers array:`, tx.nativeTransfers.length);
-          tx.nativeTransfers.forEach((transfer, transferIndex) => {
+          } else if (transfer.type === 'native' || transfer.amount) {
             processNativeTransfer(transfer, tx, index, transferIndex, nodes, edges, inputAddress);
-          });
-        }
-        
-        // Check for account data that might contain transfer info
-        if (tx.accountData) {
-          console.log(`Transaction ${index} has accountData`);
-          // Process account data for potential transfers
-        }
+          }
+        });
       }
+      
+      // Check for other possible transfer formats
+      if (tx.tokenTransfers && Array.isArray(tx.tokenTransfers)) {
+        console.log(`Transaction ${index} has tokenTransfers array:`, tx.tokenTransfers.length);
+        tx.tokenTransfers.forEach((transfer, transferIndex) => {
+          processTokenTransfer(transfer, tx, index, transferIndex, nodes, edges, inputAddress);
+        });
+      }
+      
+      if (tx.nativeTransfers && Array.isArray(tx.nativeTransfers)) {
+        console.log(`Transaction ${index} has nativeTransfers array:`, tx.nativeTransfers.length);
+        tx.nativeTransfers.forEach((transfer, transferIndex) => {
+          processNativeTransfer(transfer, tx, index, transferIndex, nodes, edges, inputAddress);
+        });
+      }
+      
+      // Check for account data that might contain transfer info
+      if (tx.accountData) {
+        console.log(`Transaction ${index} has accountData`);
+        // Process account data for potential transfers
+      }
+    }
+
+    // Also process any accounts involved in the transaction (for broader capture)
+    if (tx.accountData) {
+      tx.accountData.forEach((account, accountIndex) => {
+        if (account.account && account.account !== inputAddress) {
+          addNodeIfNeeded(account.account, nodes, inputAddress);
+        }
+      });
+    }
   });
 
       // Get entity information for all unique addresses
@@ -368,14 +383,119 @@ async function processTransactions(transactions, inputAddress) {
 }
 
 /**
+ * Enhance token metadata by fetching additional information for unknown tokens
+ */
+async function enhanceTokenMetadata(transactionData) {
+  const enhancedData = { ...transactionData };
+  const unknownTokens = new Set();
+  
+  // Collect all unknown token mints
+  enhancedData.edges.forEach(edge => {
+    if (edge.mint && (edge.tokenSymbol === 'Unknown' || !edge.tokenSymbol)) {
+      unknownTokens.add(edge.mint);
+    }
+  });
+
+  // Fetch metadata for unknown tokens
+  if (unknownTokens.size > 0) {
+    console.log(`Fetching metadata for ${unknownTokens.size} unknown tokens`);
+    
+    // Batch fetch token metadata for better performance
+    const tokenMints = Array.from(unknownTokens);
+    const batchSize = 10; // Helius allows up to 100, but we'll be conservative
+    
+    for (let i = 0; i < tokenMints.length; i += batchSize) {
+      const batch = tokenMints.slice(i, i + batchSize);
+      
+      try {
+        const tokenResponse = await axios.get(`https://api.helius.xyz/v0/token-metadata`, {
+          params: {
+            'api-key': process.env.HELIUS_API_KEY,
+            'mintAccounts': batch
+          },
+          timeout: 15000
+        });
+
+        if (tokenResponse.data && Array.isArray(tokenResponse.data)) {
+          tokenResponse.data.forEach((tokenInfo, index) => {
+            if (tokenInfo && tokenInfo.mint) {
+              const symbol = tokenInfo.onChainMetadata?.metadata?.data?.symbol || 
+                            tokenInfo.offChainMetadata?.symbol ||
+                            tokenInfo.onChainMetadata?.metadata?.data?.name?.slice(0, 4) || // Use first 4 chars of name as fallback
+                            'Unknown';
+              
+              // Update all edges with this mint
+              enhancedData.edges.forEach(edge => {
+                if (edge.mint === tokenInfo.mint) {
+                  edge.tokenSymbol = symbol;
+                  edge.tokenName = tokenInfo.onChainMetadata?.metadata?.data?.name || 
+                                  tokenInfo.offChainMetadata?.name || 'Unknown';
+                  edge.tokenLogo = tokenInfo.offChainMetadata?.logoURI;
+                  edge.tokenMetadata = {
+                    decimals: tokenInfo.onChainMetadata?.metadata?.data?.decimals,
+                    supply: tokenInfo.onChainMetadata?.metadata?.data?.supply,
+                    collection: tokenInfo.onChainMetadata?.metadata?.data?.collection,
+                    symbol: symbol,
+                    name: edge.tokenName
+                  };
+                }
+              });
+            }
+          });
+        }
+      } catch (error) {
+        console.log(`Failed to fetch metadata for token batch:`, error.message);
+        
+        // Fallback: try individual tokens
+        for (const mint of batch) {
+          try {
+            const individualResponse = await axios.get(`https://api.helius.xyz/v0/token-metadata`, {
+              params: {
+                'api-key': process.env.HELIUS_API_KEY,
+                'mintAccounts': [mint]
+              },
+              timeout: 5000
+            });
+
+            if (individualResponse.data && individualResponse.data[0]) {
+              const tokenInfo = individualResponse.data[0];
+              const symbol = tokenInfo.onChainMetadata?.metadata?.data?.symbol || 
+                            tokenInfo.offChainMetadata?.symbol ||
+                            'Unknown';
+              
+              enhancedData.edges.forEach(edge => {
+                if (edge.mint === mint) {
+                  edge.tokenSymbol = symbol;
+                  edge.tokenName = tokenInfo.onChainMetadata?.metadata?.data?.name || 
+                                  tokenInfo.offChainMetadata?.name || 'Unknown';
+                  edge.tokenLogo = tokenInfo.offChainMetadata?.logoURI;
+                }
+              });
+            }
+          } catch (individualError) {
+            console.log(`Failed to fetch metadata for individual token ${mint}:`, individualError.message);
+          }
+        }
+      }
+    }
+  }
+
+  return enhancedData;
+}
+
+/**
  * Process token transfers
  */
 function processTokenTransfer(transfer, tx, txIndex, transferIndex, nodes, edges, inputAddress) {
   const fromAddress = transfer.fromUserAccount;
   const toAddress = transfer.toUserAccount;
   
-  // Only include direct transactions
-  if (fromAddress === inputAddress || toAddress === inputAddress) {
+  // Include ALL transfers in transactions where the input address is involved
+  // This captures royalties, fees, and other related transfers
+  const isInputInvolved = fromAddress === inputAddress || toAddress === inputAddress;
+  const isInputInTransaction = tx.accountData?.some(account => account.account === inputAddress);
+  
+  if (isInputInvolved || isInputInTransaction) {
     addNodeIfNeeded(fromAddress, nodes, inputAddress);
     addNodeIfNeeded(toAddress, nodes, inputAddress);
 
@@ -392,6 +512,8 @@ function processTokenTransfer(transfer, tx, txIndex, transferIndex, nodes, edges
         tokenSymbol: transfer.tokenSymbol || 'Unknown',
         uiAmount: transfer.uiTokenAmount?.uiAmount || transfer.tokenAmount,
         decimals: transfer.uiTokenAmount?.decimals || 0,
+        isDirectTransfer: isInputInvolved,
+        isRelatedTransfer: isInputInTransaction && !isInputInvolved,
       });
     }
   }

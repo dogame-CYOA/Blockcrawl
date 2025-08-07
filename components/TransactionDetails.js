@@ -37,6 +37,37 @@ const TransactionDetails = ({ data, inputAddress, isDarkMode = true, trafficFilt
   const nftTransactions = filterTransactions(data.edges.filter(edge => edge.type === 'NFT'));
   const splTransactions = filterTransactions(data.edges.filter(edge => edge.type === 'SPL_TOKEN'));
 
+  // Group transactions by signature to show related transfers
+  const groupTransactionsBySignature = (transactions) => {
+    const groups = {};
+    transactions.forEach(edge => {
+      if (edge.signature) {
+        if (!groups[edge.signature]) {
+          groups[edge.signature] = {
+            signature: edge.signature,
+            timestamp: edge.timestamp,
+            transactions: [],
+            type: edge.type
+          };
+        }
+        groups[edge.signature].transactions.push(edge);
+      } else {
+        // If no signature, treat as individual transaction
+        const singleKey = `single-${edge.id}`;
+        groups[singleKey] = {
+          signature: null,
+          timestamp: edge.timestamp,
+          transactions: [edge],
+          type: edge.type
+        };
+      }
+    });
+    return Object.values(groups);
+  };
+
+  const nftTransactionGroups = groupTransactionsBySignature(nftTransactions);
+  const splTransactionGroups = groupTransactionsBySignature(splTransactions);
+
   const formatAddress = (address) => {
     if (!address) return '';
     return `${address.slice(0, 4)}...${address.slice(-4)}`;
@@ -52,73 +83,109 @@ const TransactionDetails = ({ data, inputAddress, isDarkMode = true, trafficFilt
     return new Intl.NumberFormat().format(num);
   };
 
-  const renderTransaction = (edge, index) => {
-    const direction = getDirection(edge);
-    const isNFT = edge.type === 'NFT';
+  const renderTransactionGroup = (group, groupIndex) => {
+    const isMultiTransfer = group.transactions.length > 1;
+    const firstTx = group.transactions[0];
+    const direction = getDirection(firstTx);
+    const isNFT = firstTx.type === 'NFT';
     
     return (
-      <div key={edge.id} className="transaction-item">
-        <div className="transaction-header">
-          <span className="transaction-number">#{index + 1}</span>
-          <span className="header-separator">•</span>
-          <span className={`transaction-type ${edge.type.toLowerCase()}`}>
-            {edge.type}
-          </span>
-          <span className="header-separator">•</span>
-          <span className={`transaction-direction ${direction}`}>
-            {direction}
-          </span>
-        </div>
-        
-        <div className="transaction-path">
-          <div className="wallet-address from">
-            <span className="label">From:</span>
-            <span className="address">{formatAddress(edge.source)}</span>
-            {edge.source === inputAddress && (
-              <span className="badge input">Input Wallet</span>
-            )}
-          </div>
-          <div className="arrow">→</div>
-          <div className="wallet-address to">
-            <span className="label">To:</span>
-            <span className="address">{formatAddress(edge.target)}</span>
-            {edge.target === inputAddress && (
-              <span className="badge input">Input Wallet</span>
-            )}
-          </div>
-        </div>
-        
-        <div className="transaction-details-row">
-          {isNFT ? (
-            <>
-              <div className="detail-item">
-                <span className="detail-label">NFT Amount:</span>
-                <span className="detail-value">1 NFT</span>
-              </div>
-              <div className="detail-item">
-                <span className="detail-label">Token Symbol:</span>
-                <span className="detail-value">{edge.tokenSymbol || 'Unknown NFT'}</span>
-              </div>
-            </>
-          ) : (
-            <>
-              <div className="detail-item">
-                <span className="detail-label">Token:</span>
-                <span className="detail-value">{edge.tokenSymbol || 'Unknown Token'}</span>
-              </div>
-              <div className="detail-item">
-                <span className="detail-label">Amount:</span>
-                <span className="detail-value amount">
-                  {formatAmount(edge.uiAmount || edge.amount, edge.decimals)}
+      <div key={group.signature || `group-${groupIndex}`} className="transaction-group">
+        <div className="transaction-group-header">
+          <div className="group-info">
+            <span className="transaction-number">#{groupIndex + 1}</span>
+            <span className="header-separator">•</span>
+            <span className={`transaction-type ${firstTx.type.toLowerCase()}`}>
+              {firstTx.type}
+            </span>
+            <span className="header-separator">•</span>
+            <span className={`transaction-direction ${direction}`}>
+              {direction}
+            </span>
+            {isMultiTransfer && (
+              <>
+                <span className="header-separator">•</span>
+                <span className="group-indicator">
+                  {group.transactions.length} transfers
                 </span>
-              </div>
-            </>
-          )}
-          <div className="detail-item">
-            <span className="detail-label">Mint Address:</span>
-            <span className="detail-value mint">{edge.mint || 'Unknown'}</span>
+              </>
+            )}
           </div>
+          
+          {group.signature && (
+            <div className="transaction-signature">
+              <span className="signature-label">Tx:</span>
+              <a 
+                href={`https://solscan.io/tx/${group.signature}`}
+                target="_blank"
+                rel="noopener noreferrer"
+                className="signature-link"
+              >
+                {group.signature.slice(0, 8)}...{group.signature.slice(-8)}
+              </a>
+            </div>
+          )}
         </div>
+
+        {group.transactions.map((edge, txIndex) => (
+          <div key={edge.id} className={`transaction-item ${isMultiTransfer ? 'grouped' : ''}`}>
+            {isMultiTransfer && (
+              <div className="transfer-number">
+                Transfer {txIndex + 1}
+              </div>
+            )}
+            
+            <div className="transaction-path">
+              <div className="wallet-address from">
+                <span className="label">From:</span>
+                <span className="address">{formatAddress(edge.source)}</span>
+                {edge.source === inputAddress && (
+                  <span className="badge input">Input Wallet</span>
+                )}
+              </div>
+              <div className="arrow">→</div>
+              <div className="wallet-address to">
+                <span className="label">To:</span>
+                <span className="address">{formatAddress(edge.target)}</span>
+                {edge.target === inputAddress && (
+                  <span className="badge input">Input Wallet</span>
+                )}
+              </div>
+            </div>
+            
+            <div className="transaction-details-row">
+              {isNFT ? (
+                <>
+                  <div className="detail-item">
+                    <span className="detail-label">NFT Amount:</span>
+                    <span className="detail-value">1 NFT</span>
+                  </div>
+                  <div className="detail-item">
+                    <span className="detail-label">Token Symbol:</span>
+                    <span className="detail-value">{edge.tokenSymbol || 'Unknown NFT'}</span>
+                  </div>
+                </>
+              ) : (
+                <>
+                  <div className="detail-item">
+                    <span className="detail-label">Token:</span>
+                    <span className="detail-value">{edge.tokenSymbol || 'Unknown Token'}</span>
+                  </div>
+                  <div className="detail-item">
+                    <span className="detail-label">Amount:</span>
+                    <span className="detail-value amount">
+                      {formatAmount(edge.uiAmount || edge.amount, edge.decimals)}
+                    </span>
+                  </div>
+                </>
+              )}
+              <div className="detail-item">
+                <span className="detail-label">Mint Address:</span>
+                <span className="detail-value mint">{edge.mint || 'Unknown'}</span>
+              </div>
+            </div>
+          </div>
+        ))}
       </div>
     );
   };

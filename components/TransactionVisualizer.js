@@ -198,6 +198,8 @@ const TransactionVisualizer = ({ data, inputAddress, isDarkMode = true, trafficF
             'border-color': '#f59e0b',
             'border-style': 'dashed',
             'border-opacity': 0.8,
+            'background-color': '#fef3c7',
+            'background-opacity': 0.3,
           }
         },
       ],
@@ -255,8 +257,27 @@ const TransactionVisualizer = ({ data, inputAddress, isDarkMode = true, trafficF
       }
     });
 
-    // Add double-click event for node expansion
+    // Add right-click event for node expansion
     cyRef.current.on('cxttap', 'node', (event) => {
+      event.preventDefault(); // Prevent default context menu
+      const node = event.target;
+      const nodeData = node.data();
+      
+      if (onExpandNode && !expandedNodes.has(nodeData.id)) {
+        // Show expansion loading state
+        setExpandingNode(nodeData.id);
+        
+        // Call the expand function
+        onExpandNode(nodeData.id, nodeData).finally(() => {
+          setExpandingNode(null);
+          setExpandedNodes(prev => new Set([...prev, nodeData.id]));
+          node.removeClass('expandable');
+        });
+      }
+    });
+
+    // Also add double-click event for node expansion as alternative
+    cyRef.current.on('dbltap', 'node', (event) => {
       const node = event.target;
       const nodeData = node.data();
       
