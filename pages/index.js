@@ -11,7 +11,7 @@ export default function Home() {
   const [error, setError] = useState('');
   const [rateLimit, setRateLimit] = useState(null);
   const [isDarkMode, setIsDarkMode] = useState(true);
-  const [timeFilter, setTimeFilter] = useState('24h');
+  const [timeFilter, setTimeFilter] = useState('15m');
   const [customStartDate, setCustomStartDate] = useState('');
   const [customEndDate, setCustomEndDate] = useState('');
   const [showCustomDate, setShowCustomDate] = useState(false);
@@ -936,11 +936,12 @@ export default function Home() {
            color: #1e293b;
          }
 
-        .time-filter-options {
-          display: flex;
-          gap: 0.5rem;
-          flex-wrap: wrap;
-        }
+                 .time-filter-options {
+           display: flex;
+           gap: 0.5rem;
+           flex-wrap: wrap;
+           align-items: center;
+         }
 
         .time-filter-btn {
           padding: 0.5rem 1rem;
@@ -986,14 +987,17 @@ export default function Home() {
           color: white;
         }
 
-        .custom-date-container {
-          margin-top: 1rem;
-          padding: 1rem;
-          border-radius: 10px;
-          background: rgba(255, 255, 255, 0.05);
-          border: 1px solid rgba(255, 255, 255, 0.1);
-          backdrop-filter: blur(10px);
-        }
+                 .custom-date-container {
+           margin-top: 1rem;
+           padding: 1rem;
+           border-radius: 10px;
+           background: rgba(255, 255, 255, 0.05);
+           border: 1px solid rgba(255, 255, 255, 0.1);
+           backdrop-filter: blur(10px);
+           display: flex;
+           gap: 1rem;
+           align-items: center;
+         }
 
         .container.dark .custom-date-container {
           background: rgba(0, 0, 0, 0.1);
@@ -1005,12 +1009,12 @@ export default function Home() {
           border: 1px solid rgba(0, 0, 0, 0.1);
         }
 
-        .date-input-group {
-          display: flex;
-          align-items: center;
-          gap: 0.5rem;
-          margin-bottom: 0.5rem;
-        }
+                 .date-input-group {
+           display: flex;
+           align-items: center;
+           gap: 0.5rem;
+           flex: 1;
+         }
 
         .date-input-group label {
           font-size: 0.8rem;
@@ -1079,27 +1083,42 @@ export default function Home() {
              width: 100%;
            }
 
+           .time-filter-container {
+             padding: 0.75rem;
+           }
+
            .time-filter-options {
-             flex-direction: column;
+             display: grid;
+             grid-template-columns: repeat(2, 1fr);
              gap: 0.5rem;
            }
 
            .time-filter-btn {
              width: 100%;
              text-align: center;
+             padding: 0.75rem 0.5rem;
+             font-size: 0.75rem;
            }
 
            .custom-date-container {
              flex-direction: column;
+             gap: 0.75rem;
            }
 
            .date-input-group {
              flex-direction: column;
              align-items: flex-start;
+             gap: 0.25rem;
            }
 
            .date-input {
              width: 100%;
+             padding: 0.75rem;
+           }
+
+           .time-filter-label {
+             font-size: 0.8rem;
+             margin-bottom: 0.5rem;
            }
          }
       `}</style>
