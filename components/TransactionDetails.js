@@ -155,22 +155,22 @@ const TransactionDetails = ({ data, inputAddress }) => {
 
       <style jsx>{`
         .transaction-details {
-          background: white;
+          background: transparent;
           border-radius: 12px;
           padding: 30px;
-          box-shadow: 0 10px 25px rgba(0,0,0,0.1);
           margin-top: 30px;
+          color: white;
         }
 
         .transaction-details h2 {
           font-size: 1.8rem;
           font-weight: 700;
           margin-bottom: 8px;
-          color: #1f2937;
+          color: white;
         }
 
         .section-subtitle {
-          color: #6b7280;
+          color: rgba(255, 255, 255, 0.8);
           margin-bottom: 24px;
           font-size: 1rem;
         }
@@ -179,7 +179,7 @@ const TransactionDetails = ({ data, inputAddress }) => {
           display: flex;
           gap: 12px;
           margin-bottom: 24px;
-          border-bottom: 2px solid #f3f4f6;
+          border-bottom: 2px solid rgba(255, 255, 255, 0.2);
         }
 
         .tab-button {
@@ -187,23 +187,26 @@ const TransactionDetails = ({ data, inputAddress }) => {
           align-items: center;
           gap: 8px;
           padding: 12px 20px;
-          background: none;
+          background: rgba(255, 255, 255, 0.1);
           border: none;
           border-bottom: 3px solid transparent;
           cursor: pointer;
           font-size: 14px;
           font-weight: 600;
-          color: #6b7280;
+          color: white;
           transition: all 0.2s;
+          border-radius: 8px 8px 0 0;
         }
 
         .tab-button.active {
-          color: #1f2937;
+          color: white;
+          background: rgba(147, 51, 234, 0.3);
           border-bottom-color: #9333ea;
         }
 
         .tab-button:hover {
-          color: #9333ea;
+          color: white;
+          background: rgba(255, 255, 255, 0.2);
         }
 
         .tab-icon {
@@ -235,15 +238,18 @@ const TransactionDetails = ({ data, inputAddress }) => {
         }
 
         .transaction-item {
-          border: 2px solid #f3f4f6;
+          border: 2px solid rgba(255, 255, 255, 0.2);
           border-radius: 12px;
           padding: 20px;
           transition: all 0.2s;
+          background: rgba(255, 255, 255, 0.05);
+          color: white;
         }
 
         .transaction-item:hover {
-          border-color: #e5e7eb;
-          box-shadow: 0 4px 12px rgba(0,0,0,0.05);
+          border-color: rgba(255, 255, 255, 0.3);
+          box-shadow: 0 4px 12px rgba(0,0,0,0.1);
+          background: rgba(255, 255, 255, 0.1);
         }
 
         .transaction-header {
@@ -251,6 +257,7 @@ const TransactionDetails = ({ data, inputAddress }) => {
           align-items: center;
           gap: 12px;
           margin-bottom: 16px;
+          color: white;
         }
 
         .transaction-type {
@@ -263,11 +270,13 @@ const TransactionDetails = ({ data, inputAddress }) => {
         }
 
         .transaction-type.nft {
-          background-color: #dc2626;
+          background-color: rgba(236, 72, 153, 0.3);
+          color: white;
         }
 
         .transaction-type.spl_token {
-          background-color: #2563eb;
+          background-color: rgba(59, 130, 246, 0.3);
+          color: white;
         }
 
         .transaction-direction {
@@ -276,16 +285,17 @@ const TransactionDetails = ({ data, inputAddress }) => {
           font-size: 12px;
           font-weight: 600;
           text-transform: uppercase;
+          color: white;
         }
 
         .transaction-direction.incoming {
-          background-color: #d1fae5;
-          color: #065f46;
+          background-color: rgba(16, 185, 129, 0.3);
+          color: white;
         }
 
         .transaction-direction.outgoing {
-          background-color: #fef3c7;
-          color: #92400e;
+          background-color: rgba(239, 68, 68, 0.3);
+          color: white;
         }
 
         .transaction-path {
@@ -294,8 +304,9 @@ const TransactionDetails = ({ data, inputAddress }) => {
           gap: 16px;
           margin-bottom: 16px;
           padding: 16px;
-          background-color: #f9fafb;
+          background-color: rgba(255, 255, 255, 0.05);
           border-radius: 8px;
+          color: white;
         }
 
         .wallet-address {
@@ -309,7 +320,7 @@ const TransactionDetails = ({ data, inputAddress }) => {
         .wallet-address .label {
           font-size: 12px;
           font-weight: 600;
-          color: #6b7280;
+          color: rgba(255, 255, 255, 0.8);
           text-transform: uppercase;
           flex-shrink: 0;
         }
@@ -318,12 +329,12 @@ const TransactionDetails = ({ data, inputAddress }) => {
           font-family: 'Courier New', monospace;
           font-size: 14px;
           font-weight: 600;
-          color: #1f2937;
+          color: white;
         }
 
         .badge {
           padding: 2px 8px;
-          background-color: #9333ea;
+          background-color: rgba(16, 185, 129, 0.3);
           color: white;
           border-radius: 12px;
           font-size: 10px;
@@ -335,7 +346,7 @@ const TransactionDetails = ({ data, inputAddress }) => {
         .arrow {
           font-size: 18px;
           font-weight: bold;
-          color: #6b7280;
+          color: white;
           flex-shrink: 0;
         }
 
@@ -343,47 +354,51 @@ const TransactionDetails = ({ data, inputAddress }) => {
           display: grid;
           grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
           gap: 16px;
+          color: white;
         }
 
         .detail-item {
           display: flex;
           flex-direction: column;
           gap: 4px;
+          color: white;
         }
 
         .detail-label {
           font-size: 12px;
           font-weight: 600;
-          color: #6b7280;
+          color: rgba(255, 255, 255, 0.8);
           text-transform: uppercase;
         }
 
         .detail-value {
           font-size: 14px;
-          color: #1f2937;
+          color: white;
           word-break: break-all;
         }
 
         .detail-value.amount {
           font-family: 'Courier New', monospace;
           font-weight: 700;
-          color: #059669;
+          color: #10b981;
         }
 
         .detail-value.mint {
           font-family: 'Courier New', monospace;
           font-size: 12px;
+          color: rgba(255, 255, 255, 0.7);
         }
 
         .no-transactions {
           text-align: center;
           padding: 40px;
-          color: #6b7280;
+          color: white;
         }
 
         .no-transactions p {
           font-style: italic;
           font-size: 1rem;
+          color: rgba(255, 255, 255, 0.8);
         }
 
         @media (max-width: 768px) {
