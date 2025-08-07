@@ -1,8 +1,8 @@
-import { HeliusClient } from '../../lib/helius';
+import axios from 'axios';
 
 /**
  * Serverless function to fetch transaction data securely
- * Simplified version for debugging
+ * Using the same working format as the test endpoint
  */
 export default async function handler(req, res) {
   // Set security headers
@@ -65,17 +65,25 @@ export default async function handler(req, res) {
       });
     }
 
-    console.log('API Key configured, initializing Helius client...');
-
-    // Initialize Helius client
-    const heliusClient = new HeliusClient(process.env.HELIUS_API_KEY);
-
+    console.log('API Key configured, making direct Helius API call...');
     console.log('Fetching transactions for address:', cleanAddress);
 
-    // Fetch transaction data
-    const transactionData = await heliusClient.getTransactions(cleanAddress);
+    // Use the exact same working format as the test endpoint
+    const response = await axios.get(`https://api.helius.xyz/v0/addresses/${cleanAddress}/transactions`, {
+      params: {
+        'api-key': process.env.HELIUS_API_KEY,
+        limit: 50,
+      },
+      timeout: 30000,
+    });
 
-    console.log('Transaction data fetched successfully:', {
+    console.log('Helius API response status:', response.status);
+    console.log('Response data length:', response.data?.length || 0);
+
+    // Process the transaction data
+    const transactionData = processTransactions(response.data || [], cleanAddress);
+
+    console.log('Transaction data processed successfully:', {
       nodes: transactionData.nodes?.length || 0,
       edges: transactionData.edges?.length || 0
     });
@@ -123,4 +131,137 @@ export default async function handler(req, res) {
       details: process.env.NODE_ENV === 'development' ? error.message : undefined
     });
   }
+}
+
+/**
+ * Process raw transaction data into nodes and edges for visualization
+ */
+function processTransactions(transactions, inputAddress) {
+  const nodes = new Map();
+  const edges = [];
+  
+  // Add the input wallet as the central node
+  nodes.set(inputAddress, {
+    id: inputAddress,
+    label: formatAddress(inputAddress),
+    type: 'input',
+    size: 60,
+  });
+
+  console.log('Processing', transactions.length, 'transactions');
+
+  transactions.forEach((tx, index) => {
+    // Handle different transaction formats
+    if (tx.tokenTransfers) {
+      tx.tokenTransfers.forEach((transfer, transferIndex) => {
+        processTokenTransfer(transfer, tx, index, transferIndex, nodes, edges, inputAddress);
+      });
+    } else if (tx.nativeTransfers) {
+      tx.nativeTransfers.forEach((transfer, transferIndex) => {
+        processNativeTransfer(transfer, tx, index, transferIndex, nodes, edges, inputAddress);
+      });
+    }
+  });
+
+  const result = {
+    nodes: Array.from(nodes.values()),
+    edges: edges,
+    totalTransactions: transactions.length,
+    processedAt: new Date().toISOString(),
+  };
+
+  console.log('Processed result:', {
+    nodes: result.nodes.length,
+    edges: result.edges.length
+  });
+
+  return result;
+}
+
+/**
+ * Process token transfers
+ */
+function processTokenTransfer(transfer, tx, txIndex, transferIndex, nodes, edges, inputAddress) {
+  const fromAddress = transfer.fromUserAccount;
+  const toAddress = transfer.toUserAccount;
+  
+  // Only include direct transactions
+  if (fromAddress === inputAddress || toAddress === inputAddress) {
+    addNodeIfNeeded(fromAddress, nodes, inputAddress);
+    addNodeIfNeeded(toAddress, nodes, inputAddress);
+
+    if (fromAddress && toAddress) {
+      edges.push({
+        id: `${fromAddress}-${toAddress}-${txIndex}-${transferIndex}`,
+        source: fromAddress,
+        target: toAddress,
+        type: getTransactionType(transfer),
+        amount: transfer.tokenAmount || 0,
+        mint: transfer.mint,
+        signature: tx.signature,
+        timestamp: tx.timestamp,
+        tokenSymbol: transfer.tokenSymbol || 'Unknown',
+        uiAmount: transfer.uiTokenAmount?.uiAmount || transfer.tokenAmount,
+        decimals: transfer.uiTokenAmount?.decimals || 0,
+      });
+    }
+  }
+}
+
+/**
+ * Process native SOL transfers
+ */
+function processNativeTransfer(transfer, tx, txIndex, transferIndex, nodes, edges, inputAddress) {
+  const fromAddress = transfer.fromUserAccount;
+  const toAddress = transfer.toUserAccount;
+  
+  if (fromAddress === inputAddress || toAddress === inputAddress) {
+    addNodeIfNeeded(fromAddress, nodes, inputAddress);
+    addNodeIfNeeded(toAddress, nodes, inputAddress);
+
+    if (fromAddress && toAddress) {
+      edges.push({
+        id: `${fromAddress}-${toAddress}-${txIndex}-${transferIndex}`,
+        source: fromAddress,
+        target: toAddress,
+        type: 'SOL',
+        amount: transfer.amount || 0,
+        signature: tx.signature,
+        timestamp: tx.timestamp,
+      });
+    }
+  }
+}
+
+/**
+ * Add node if it doesn't exist
+ */
+function addNodeIfNeeded(address, nodes, inputAddress) {
+  if (address && address !== inputAddress && !nodes.has(address)) {
+    nodes.set(address, {
+      id: address,
+      label: formatAddress(address),
+      type: 'wallet',
+      size: 40,
+    });
+  }
+}
+
+/**
+ * Determine transaction type based on transfer data
+ */
+function getTransactionType(transfer) {
+  // NFTs typically have amount of 1 and specific metadata
+  if (transfer.tokenAmount === 1 || transfer.uiTokenAmount?.uiAmount === 1) {
+    return 'NFT';
+  }
+  return 'SPL_TOKEN';
+}
+
+/**
+ * Format wallet address for display
+ */
+function formatAddress(address) {
+  if (!address) return '';
+  return `${address.slice(0, 4)}...${address.slice(-4)}`;
 } 
