@@ -15,6 +15,8 @@ export default function Home() {
   const [customStartDate, setCustomStartDate] = useState('');
   const [customEndDate, setCustomEndDate] = useState('');
   const [showCustomDate, setShowCustomDate] = useState(false);
+  const [trafficFilter, setTrafficFilter] = useState('both'); // 'incoming', 'outgoing', 'both'
+  const [recordCount, setRecordCount] = useState(null); // Track number of records found
 
   // Load theme preference from localStorage
   useEffect(() => {
@@ -101,6 +103,7 @@ export default function Home() {
     setError('');
     setTransactionData(null);
     setRateLimit(null);
+    setRecordCount(null);
 
     try {
       const response = await fetch('/api/transactions', {
@@ -127,6 +130,11 @@ export default function Home() {
       }
 
       setTransactionData(data);
+      
+      // Set record count
+      if (data.edges) {
+        setRecordCount(data.edges.length);
+      }
       
       // Store rate limit info if available
       if (data.requestInfo?.rateLimit) {
@@ -292,9 +300,39 @@ export default function Home() {
                     />
                   </div>
                 </div>
-              )}
-            </div>
-          </form>
+                             )}
+             </div>
+             
+             <div className="traffic-filter-container">
+               <div className="traffic-filter-label">Display Traffic:</div>
+               <div className="traffic-filter-options">
+                 <button
+                   type="button"
+                   className={`traffic-filter-btn ${trafficFilter === 'both' ? 'active' : ''}`}
+                   onClick={() => setTrafficFilter('both')}
+                 >
+                   <span className="traffic-icon both">↔</span>
+                   Both
+                 </button>
+                 <button
+                   type="button"
+                   className={`traffic-filter-btn ${trafficFilter === 'incoming' ? 'active' : ''}`}
+                   onClick={() => setTrafficFilter('incoming')}
+                 >
+                   <span className="traffic-icon incoming">↓</span>
+                   Incoming
+                 </button>
+                 <button
+                   type="button"
+                   className={`traffic-filter-btn ${trafficFilter === 'outgoing' ? 'active' : ''}`}
+                   onClick={() => setTrafficFilter('outgoing')}
+                 >
+                   <span className="traffic-icon outgoing">↑</span>
+                   Outgoing
+                 </button>
+               </div>
+             </div>
+           </form>
 
           {error && (
             <div className="error-message" role="alert">
@@ -302,20 +340,22 @@ export default function Home() {
             </div>
           )}
 
-          {loading && <LoadingSpinner />}
+          {loading && <LoadingSpinner recordCount={recordCount} />}
 
           {transactionData && (
             <div className="results-container">
-              <TransactionVisualizer 
-                data={transactionData} 
-                inputAddress={walletAddress}
-                isDarkMode={isDarkMode}
-              />
-              <TransactionDetails 
-                data={transactionData} 
-                inputAddress={walletAddress}
-                isDarkMode={isDarkMode}
-              />
+                             <TransactionVisualizer 
+                 data={transactionData} 
+                 inputAddress={walletAddress}
+                 isDarkMode={isDarkMode}
+                 trafficFilter={trafficFilter}
+               />
+               <TransactionDetails 
+                 data={transactionData} 
+                 inputAddress={walletAddress}
+                 isDarkMode={isDarkMode}
+                 trafficFilter={trafficFilter}
+               />
             </div>
           )}
 
@@ -1065,11 +1105,128 @@ export default function Home() {
           box-shadow: 0 0 20px rgba(255, 255, 255, 0.3);
         }
 
-        .container.light .date-input:focus {
-          outline: none;
-          background: rgba(0, 0, 0, 0.1);
-          box-shadow: 0 0 20px rgba(0, 0, 0, 0.2);
-        }
+                 .container.light .date-input:focus {
+           outline: none;
+           background: rgba(0, 0, 0, 0.1);
+           box-shadow: 0 0 20px rgba(0, 0, 0, 0.2);
+         }
+
+         .traffic-filter-container {
+           display: flex;
+           flex-direction: column;
+           gap: 1rem;
+           margin-top: 1rem;
+           padding: 1rem;
+           border-radius: 10px;
+           backdrop-filter: blur(10px);
+           transition: all 0.3s ease;
+         }
+
+         .container.dark .traffic-filter-container {
+           background: rgba(0, 0, 0, 0.3);
+           border: 1px solid rgba(255, 255, 255, 0.2);
+         }
+
+         .container.light .traffic-filter-container {
+           background: rgba(255, 255, 255, 0.1);
+           border: 1px solid rgba(0, 0, 0, 0.1);
+         }
+
+         .traffic-filter-label {
+           font-size: 0.9rem;
+           font-weight: 600;
+         }
+
+         .container.dark .traffic-filter-label {
+           color: rgba(255, 255, 255, 0.9);
+         }
+
+         .container.light .traffic-filter-label {
+           color: #1e293b;
+         }
+
+         .traffic-filter-options {
+           display: flex;
+           gap: 0.5rem;
+           flex-wrap: wrap;
+           align-items: center;
+         }
+
+         .traffic-filter-btn {
+           display: flex;
+           align-items: center;
+           gap: 0.5rem;
+           padding: 0.5rem 1rem;
+           border: none;
+           border-radius: 8px;
+           background: rgba(255, 255, 255, 0.1);
+           color: white;
+           font-size: 0.8rem;
+           font-weight: 600;
+           cursor: pointer;
+           transition: all 0.3s ease;
+           white-space: nowrap;
+         }
+
+         .container.dark .traffic-filter-btn {
+           background: rgba(255, 255, 255, 0.05);
+           border: 1px solid rgba(255, 255, 255, 0.1);
+           color: rgba(255, 255, 255, 0.9);
+         }
+
+         .container.light .traffic-filter-btn {
+           background: rgba(0, 0, 0, 0.05);
+           border: 1px solid rgba(0, 0, 0, 0.1);
+           color: #1e293b;
+         }
+
+         .traffic-filter-btn:hover:not(:disabled) {
+           transform: translateY(-2px);
+           background: rgba(255, 255, 255, 0.2);
+         }
+
+         .container.dark .traffic-filter-btn:hover {
+           background: rgba(255, 255, 255, 0.2);
+         }
+
+         .container.light .traffic-filter-btn:hover {
+           background: rgba(0, 0, 0, 0.2);
+         }
+
+         .traffic-filter-btn.active {
+           background: rgba(147, 51, 234, 0.3);
+           border: 1px solid rgba(147, 51, 234, 0.5);
+           color: white;
+         }
+
+         .traffic-icon {
+           font-size: 1rem;
+           font-weight: bold;
+         }
+
+         .traffic-icon.both {
+           color: #94a3b8;
+         }
+
+         .traffic-icon.incoming {
+           color: #10b981;
+         }
+
+         .traffic-icon.outgoing {
+           color: #ef4444;
+         }
+
+         .container.light .traffic-icon.both {
+           color: #64748b;
+         }
+
+         .container.light .traffic-icon.incoming {
+           color: #059669;
+         }
+
+         .container.light .traffic-icon.outgoing {
+           color: #dc2626;
+         }
 
                  @media (max-width: 768px) {
            .header h1 {
@@ -1117,11 +1274,33 @@ export default function Home() {
              padding: 0.75rem;
            }
 
-           .time-filter-label {
-             font-size: 0.8rem;
-             margin-bottom: 0.5rem;
-           }
-         }
+                       .time-filter-label {
+              font-size: 0.8rem;
+              margin-bottom: 0.5rem;
+            }
+
+            .traffic-filter-container {
+              padding: 0.75rem;
+            }
+
+            .traffic-filter-options {
+              display: grid;
+              grid-template-columns: repeat(3, 1fr);
+              gap: 0.5rem;
+            }
+
+            .traffic-filter-btn {
+              width: 100%;
+              text-align: center;
+              padding: 0.75rem 0.5rem;
+              font-size: 0.75rem;
+            }
+
+            .traffic-filter-label {
+              font-size: 0.8rem;
+              margin-bottom: 0.5rem;
+            }
+          }
       `}</style>
     </>
   );

@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 
-const TransactionDetails = ({ data, inputAddress, isDarkMode = true }) => {
+const TransactionDetails = ({ data, inputAddress, isDarkMode = true, trafficFilter = 'both' }) => {
   const [activeTab, setActiveTab] = useState('nft');
 
   if (!data || !data.edges || data.edges.length === 0) {
@@ -14,9 +14,28 @@ const TransactionDetails = ({ data, inputAddress, isDarkMode = true }) => {
     );
   }
 
+  // Filter transactions based on traffic filter
+  const filterTransactions = (transactions) => {
+    if (trafficFilter === 'both') {
+      return transactions;
+    }
+    
+    return transactions.filter(edge => {
+      const isIncoming = edge.target === inputAddress;
+      const isOutgoing = edge.source === inputAddress;
+      
+      if (trafficFilter === 'incoming') {
+        return isIncoming;
+      } else if (trafficFilter === 'outgoing') {
+        return isOutgoing;
+      }
+      return true;
+    });
+  };
+
   // Separate NFT and SPL token transactions
-  const nftTransactions = data.edges.filter(edge => edge.type === 'NFT');
-  const splTransactions = data.edges.filter(edge => edge.type === 'SPL_TOKEN');
+  const nftTransactions = filterTransactions(data.edges.filter(edge => edge.type === 'NFT'));
+  const splTransactions = filterTransactions(data.edges.filter(edge => edge.type === 'SPL_TOKEN'));
 
   const formatAddress = (address) => {
     if (!address) return '';
@@ -109,6 +128,15 @@ const TransactionDetails = ({ data, inputAddress, isDarkMode = true }) => {
         Detailed breakdown of all NFT transfers and SPL token transactions
       </p>
       
+      {trafficFilter !== 'both' && (
+        <div className="filter-indicator">
+          <span className="filter-icon">
+            {trafficFilter === 'incoming' ? '↓' : '↑'}
+          </span>
+          Showing {trafficFilter === 'incoming' ? 'incoming' : 'outgoing'} transactions only
+        </div>
+      )}
+      
       <div className="transaction-tabs">
         <button 
           className={`tab-button ${activeTab === 'nft' ? 'active' : ''}`}
@@ -173,6 +201,31 @@ const TransactionDetails = ({ data, inputAddress, isDarkMode = true }) => {
           margin-bottom: 24px;
           font-size: 1rem;
           transition: all 0.3s ease;
+        }
+
+        .filter-indicator {
+          display: flex;
+          align-items: center;
+          gap: 8px;
+          margin-bottom: 20px;
+          padding: 8px 16px;
+          border-radius: 8px;
+          font-size: 14px;
+          font-weight: 600;
+          background: rgba(147, 51, 234, 0.1);
+          color: #9333ea;
+          border: 1px solid rgba(147, 51, 234, 0.2);
+        }
+
+        .filter-icon {
+          font-size: 16px;
+          font-weight: bold;
+        }
+
+        .transaction-details.dark .filter-indicator {
+          background: rgba(147, 51, 234, 0.2);
+          color: #a855f7;
+          border-color: rgba(147, 51, 234, 0.3);
         }
 
         .transaction-tabs {

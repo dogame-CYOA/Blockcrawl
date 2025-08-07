@@ -5,12 +5,45 @@ import coseBilkent from 'cytoscape-cose-bilkent';
 // Register the layout extension
 cytoscape.use(coseBilkent);
 
-const TransactionVisualizer = ({ data, inputAddress, isDarkMode = true }) => {
+const TransactionVisualizer = ({ data, inputAddress, isDarkMode = true, trafficFilter = 'both' }) => {
   const containerRef = useRef(null);
   const cyRef = useRef(null);
   const [selectedNode, setSelectedNode] = useState(null);
   const [hoveredEdge, setHoveredEdge] = useState(null);
   const [tooltipPosition, setTooltipPosition] = useState({ x: 0, y: 0 });
+
+  // Filter data based on traffic filter
+  const filteredEdges = React.useMemo(() => {
+    if (!data || !data.edges) return [];
+    
+    if (trafficFilter === 'both') {
+      return data.edges;
+    }
+    
+    return data.edges.filter(edge => {
+      const isIncoming = edge.target === inputAddress;
+      const isOutgoing = edge.source === inputAddress;
+      
+      if (trafficFilter === 'incoming') {
+        return isIncoming;
+      } else if (trafficFilter === 'outgoing') {
+        return isOutgoing;
+      }
+      return true;
+    });
+  }, [data, trafficFilter, inputAddress]);
+
+  const filteredNodes = React.useMemo(() => {
+    if (!data || !data.nodes) return [];
+    
+    const nodeIds = new Set();
+    filteredEdges.forEach(edge => {
+      nodeIds.add(edge.source);
+      nodeIds.add(edge.target);
+    });
+
+    return data.nodes.filter(node => nodeIds.has(node.id));
+  }, [filteredEdges, data]);
 
   useEffect(() => {
     if (!data || !containerRef.current) return;
@@ -20,13 +53,15 @@ const TransactionVisualizer = ({ data, inputAddress, isDarkMode = true }) => {
       cyRef.current.destroy();
     }
 
+
+
     // Initialize Cytoscape
     cyRef.current = cytoscape({
       container: containerRef.current,
       
       elements: [
         // Add nodes
-        ...data.nodes.map(node => ({
+        ...filteredNodes.map(node => ({
           data: {
             id: node.id,
             label: node.label,
@@ -34,7 +69,7 @@ const TransactionVisualizer = ({ data, inputAddress, isDarkMode = true }) => {
           }
         })),
         // Add edges
-        ...data.edges.map(edge => ({
+        ...filteredEdges.map(edge => ({
           data: {
             id: edge.id,
             source: edge.source,
@@ -232,7 +267,7 @@ const TransactionVisualizer = ({ data, inputAddress, isDarkMode = true }) => {
         cyRef.current.destroy();
       }
     };
-  }, [data]);
+  }, [filteredNodes, filteredEdges]);
 
   if (!data || data.nodes.length === 0) {
     return (
@@ -269,8 +304,13 @@ const TransactionVisualizer = ({ data, inputAddress, isDarkMode = true }) => {
       <div ref={containerRef} className="cytoscape-container" />
       
       <div className="stats">
-        <span>Nodes: {data.nodes.length}</span>
-        <span>Transactions: {data.edges.length}</span>
+        <span>Nodes: {filteredNodes ? filteredNodes.length : data.nodes.length}</span>
+        <span>Transactions: {filteredEdges ? filteredEdges.length : data.edges.length}</span>
+        {trafficFilter !== 'both' && (
+          <span className="filter-indicator">
+            Showing: {trafficFilter === 'incoming' ? 'Incoming' : 'Outgoing'} only
+          </span>
+        )}
       </div>
 
       {selectedNode && (
@@ -457,6 +497,21 @@ const TransactionVisualizer = ({ data, inputAddress, isDarkMode = true }) => {
         
         .stats span {
           margin-right: 12px;
+        }
+        
+        .filter-indicator {
+          background: rgba(147, 51, 234, 0.1);
+          color: #9333ea;
+          padding: 2px 6px;
+          border-radius: 4px;
+          font-weight: 600;
+          font-size: 11px;
+        }
+        
+        .visualizer-container.dark .filter-indicator {
+          background: rgba(147, 51, 234, 0.2);
+          color: #a855f7;
+        }
           font-weight: 500;
         }
 

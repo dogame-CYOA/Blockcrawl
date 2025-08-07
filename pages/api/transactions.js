@@ -81,10 +81,19 @@ export default async function handler(req, res) {
       limit: 50,
     };
 
-    // Temporarily disable time range filtering to ensure API stability
-    // TODO: Re-implement time filtering once we confirm the correct Helius API parameters
+    // Add time range if provided
     if (timeRange) {
-      console.log('Time range filtering temporarily disabled for API stability');
+      // Helius API uses 'before' for the end timestamp and 'after' for the start timestamp
+      // Convert ISO strings to Unix timestamps (seconds)
+      const startTimestamp = Math.floor(new Date(timeRange.start).getTime() / 1000);
+      const endTimestamp = Math.floor(new Date(timeRange.end).getTime() / 1000);
+      
+      // Only add time parameters if they are valid
+      if (startTimestamp > 0 && endTimestamp > 0) {
+        params.before = endTimestamp;
+        params.after = startTimestamp;
+        console.log('Time range applied:', { startTimestamp, endTimestamp });
+      }
     }
 
     // Use the exact same working format as the test endpoint

@@ -1,6 +1,6 @@
 import React from 'react';
 
-const LoadingSpinner = () => {
+const LoadingSpinner = ({ recordCount = null }) => {
   return (
     <div className="loading-container">
       <div className="spinner"></div>
@@ -10,6 +10,13 @@ const LoadingSpinner = () => {
         <div className="step">Processing wallet connections</div>
         <div className="step">Building visualization</div>
       </div>
+      
+      {recordCount !== null && (
+        <div className="record-count">
+          <span className="count-number">{recordCount}</span>
+          <span className="count-label">records found</span>
+        </div>
+      )}
       
       <style jsx>{`
         .loading-container {
@@ -61,6 +68,29 @@ const LoadingSpinner = () => {
           color: #9333ea;
           margin-right: 8px;
           font-weight: bold;
+        }
+        
+        .record-count {
+          margin-top: 20px;
+          padding: 12px 20px;
+          background: rgba(147, 51, 234, 0.1);
+          border: 1px solid rgba(147, 51, 234, 0.2);
+          border-radius: 8px;
+          display: flex;
+          align-items: center;
+          gap: 8px;
+        }
+        
+        .count-number {
+          font-size: 24px;
+          font-weight: 700;
+          color: #9333ea;
+        }
+        
+        .count-label {
+          font-size: 14px;
+          color: #6b7280;
+          font-weight: 500;
         }
         
         @media (max-width: 768px) {
