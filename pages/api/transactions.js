@@ -586,13 +586,12 @@ async function enhanceTokenMetadata(transactionData) {
         const batchStartTime = Date.now();
         console.log(`[DEBUG] enhanceTokenMetadata: Fetching batch ${i/batchSize + 1} (${batch.length} tokens)`);
         
-        const tokenResponse = await axios.post(`https://api.helius.xyz/v0/token-metadata`, {
+        const tokenResponse = await axios.post(`https://api.helius.xyz/v0/token-metadata?api-key=${process.env.HELIUS_API_KEY}`, {
           mintAccounts: batch,
           includeOffChain: true,
           disableCache: false
         }, {
           headers: {
-            'Authorization': `Bearer ${process.env.HELIUS_API_KEY}`,
             'Content-Type': 'application/json'
           },
           timeout: 8000
@@ -650,13 +649,12 @@ async function enhanceTokenMetadata(transactionData) {
         for (const mint of batch) {
           try {
             const individualStartTime = Date.now();
-            const individualResponse = await axios.post(`https://api.helius.xyz/v0/token-metadata`, {
+            const individualResponse = await axios.post(`https://api.helius.xyz/v0/token-metadata?api-key=${process.env.HELIUS_API_KEY}`, {
               mintAccounts: [mint],
               includeOffChain: true,
               disableCache: false
             }, {
               headers: {
-                'Authorization': `Bearer ${process.env.HELIUS_API_KEY}`,
                 'Content-Type': 'application/json'
               },
               timeout: 3000

@@ -226,11 +226,11 @@ const TransactionDetails = ({ data, inputAddress, isDarkMode = true, trafficFilt
       <div className={`tab-content ${activeTab === 'nft' ? 'active' : ''}`}>
         {activeTab === 'nft' && (
           <div className="transaction-list">
-            {nftTransactions.length > 0 ? (
-              nftTransactions.map((edge, index) => (
-                <React.Fragment key={edge.id}>
-                  {renderTransaction(edge, index)}
-                  {index < nftTransactions.length - 1 && (
+            {nftTransactionGroups.length > 0 ? (
+              nftTransactionGroups.map((group, index) => (
+                <React.Fragment key={group.signature || `group-${index}`}>
+                  {renderTransactionGroup(group, index)}
+                  {index < nftTransactionGroups.length - 1 && (
                     <div className="transaction-separator">
                       <div className="separator-line"></div>
                       <div className="separator-dot">•</div>
@@ -251,11 +251,11 @@ const TransactionDetails = ({ data, inputAddress, isDarkMode = true, trafficFilt
       <div className={`tab-content ${activeTab === 'spl' ? 'active' : ''}`}>
         {activeTab === 'spl' && (
           <div className="transaction-list">
-            {splTransactions.length > 0 ? (
-              splTransactions.map((edge, index) => (
-                <React.Fragment key={edge.id}>
-                  {renderTransaction(edge, index)}
-                  {index < splTransactions.length - 1 && (
+            {splTransactionGroups.length > 0 ? (
+              splTransactionGroups.map((group, index) => (
+                <React.Fragment key={group.signature || `group-${index}`}>
+                  {renderTransactionGroup(group, index)}
+                  {index < splTransactionGroups.length - 1 && (
                     <div className="transaction-separator">
                       <div className="separator-line"></div>
                       <div className="separator-dot">•</div>
