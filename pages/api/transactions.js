@@ -162,7 +162,6 @@ export default async function handler(req, res) {
 
     const params = {
       'api-key': process.env.HELIUS_API_KEY,
-      limit: getLimitForTimeRange(timeRange),
     };
 
     // Note: Helius API doesn't support time filtering parameters
