@@ -11,6 +11,7 @@ const TransactionVisualizer = ({ data, inputAddress, isDarkMode = true, trafficF
   const [selectedNode, setSelectedNode] = useState(null);
   const [hoveredEdge, setHoveredEdge] = useState(null);
   const [tooltipPosition, setTooltipPosition] = useState({ x: 0, y: 0 });
+  const [layoutType, setLayoutType] = useState('spread'); // 'spread' or 'compact'
 
   // Filter data based on traffic filter
   const filteredEdges = React.useMemo(() => {
@@ -194,16 +195,22 @@ const TransactionVisualizer = ({ data, inputAddress, isDarkMode = true, trafficF
         animate: true,
         animationDuration: 1000,
         fit: true,
-        padding: 50,
-        nodeRepulsion: 100000,
-        idealEdgeLength: 100,
-        edgeElasticity: 100,
-        nestingFactor: 0.1,
-        gravity: 0.25,
-        numIter: 2500,
-        tile: true,
-        tilingPaddingVertical: 10,
-        tilingPaddingHorizontal: 10,
+        padding: 100,
+        nodeRepulsion: 200000, // Increased repulsion to spread nodes further apart
+        idealEdgeLength: 200, // Increased ideal edge length
+        edgeElasticity: 200, // Increased edge elasticity
+        nestingFactor: 0.05, // Reduced nesting factor to prevent clustering
+        gravity: 0.1, // Reduced gravity to allow more spread
+        numIter: 3000, // More iterations for better layout
+        tile: false, // Disable tiling to allow free positioning
+        tilingPaddingVertical: 50,
+        tilingPaddingHorizontal: 50,
+        // Additional parameters for better spacing
+        nodeDimensionsIncludeLabels: true,
+        randomize: true, // Start with random positions for better distribution
+        componentSpacing: 100, // Space between disconnected components
+        nodeOverlap: 20, // Allow some overlap but not too much
+        refresh: 30, // Refresh rate during animation
       },
 
       // Enable panning and zooming
