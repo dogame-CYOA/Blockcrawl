@@ -20,6 +20,8 @@ export default function Home() {
   const [recordCount, setRecordCount] = useState(null); // Track number of records found
   const [expandedData, setExpandedData] = useState({}); // Store expanded node data
   const [partialData, setPartialData] = useState(null); // For progressive loading
+  const [progressiveLoading, setProgressiveLoading] = useState(null); // Progressive loading info
+  const [canExpand, setCanExpand] = useState(false); // Can expand to get more data
 
   // Load theme preference from localStorage
   useEffect(() => {
@@ -163,6 +165,12 @@ export default function Home() {
 
       setTransactionData(data);
       
+      // Set progressive loading info
+      if (data.progressiveLoading) {
+        setProgressiveLoading(data.progressiveLoading);
+        setCanExpand(data.progressiveLoading.canExpand);
+      }
+      
       // Set record count
       if (data.edges) {
         setRecordCount(data.edges.length);
@@ -270,6 +278,63 @@ export default function Home() {
     } catch (error) {
       console.error('Error expanding node:', error);
       setError('Failed to expand node. Please try again.');
+    }
+  };
+
+  const handleExpandData = async () => {
+    if (!canExpand || !progressiveLoading) return;
+    
+    setLoading(true);
+    setLoadingProgress('Expanding data range...');
+    
+    try {
+      // Calculate expanded time range (double the current range)
+      const currentStart = new Date(progressiveLoading.timeRange.start);
+      const currentEnd = new Date(progressiveLoading.timeRange.end);
+      const duration = currentEnd.getTime() - currentStart.getTime();
+      
+      const expandedStart = new Date(currentStart.getTime() - duration);
+      const expandedEnd = currentEnd;
+      
+      const response = await fetch('/api/transactions', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({ 
+          address: walletAddress.trim(),
+          timeRange: {
+            start: expandedStart.toISOString(),
+            end: expandedEnd.toISOString()
+          }
+        }),
+      });
+
+      const data = await response.json();
+
+      if (!response.ok) {
+        throw new Error(data.message || data.error || 'Failed to expand data');
+      }
+
+      // Merge the expanded data with existing data
+      setTransactionData(data);
+      
+      // Update progressive loading info
+      if (data.progressiveLoading) {
+        setProgressiveLoading(data.progressiveLoading);
+        setCanExpand(data.progressiveLoading.canExpand);
+      }
+      
+      // Update record count
+      if (data.edges) {
+        setRecordCount(data.edges.length);
+      }
+      
+    } catch (error) {
+      setError('Failed to expand data: ' + error.message);
+    } finally {
+      setLoading(false);
+      setLoadingProgress('');
     }
   };
 
@@ -460,6 +525,28 @@ export default function Home() {
                   Outgoing
                 </button>
               </div>
+            </div>
+          )}
+
+          {/* Progressive Loading Info */}
+          {progressiveLoading && (
+            <div className="progressive-loading-info">
+              <div className="progressive-loading-stats">
+                <span>📊 Showing {progressiveLoading.filteredCount} transactions from {progressiveLoading.totalFetched} total fetched</span>
+                {progressiveLoading.hasMoreData && (
+                  <span className="more-data-indicator">• More data available</span>
+                )}
+              </div>
+              {canExpand && (
+                <button
+                  type="button"
+                  className="expand-data-btn"
+                  onClick={handleExpandData}
+                  disabled={loading}
+                >
+                  {loading ? '⏳ Expanding...' : '🔄 Expand Time Range'}
+                </button>
+              )}
             </div>
           )}
 
@@ -1423,6 +1510,78 @@ export default function Home() {
          .traffic-icon {
            font-size: 1rem;
            font-weight: bold;
+         }
+
+         .progressive-loading-info {
+           display: flex;
+           justify-content: space-between;
+           align-items: center;
+           flex-wrap: wrap;
+           gap: 1rem;
+           margin-top: 1rem;
+           padding: 1rem;
+           border-radius: 10px;
+           backdrop-filter: blur(10px);
+           transition: all 0.3s ease;
+         }
+
+         .container.dark .progressive-loading-info {
+           background: rgba(52, 152, 219, 0.1);
+           border: 1px solid rgba(52, 152, 219, 0.3);
+         }
+
+         .container.light .progressive-loading-info {
+           background: rgba(52, 152, 219, 0.05);
+           border: 1px solid rgba(52, 152, 219, 0.2);
+         }
+
+         .progressive-loading-stats {
+           display: flex;
+           align-items: center;
+           gap: 0.5rem;
+           font-size: 0.9rem;
+           font-weight: 500;
+         }
+
+         .container.dark .progressive-loading-stats {
+           color: #3498db;
+         }
+
+         .container.light .progressive-loading-stats {
+           color: #2980b9;
+         }
+
+         .more-data-indicator {
+           color: #27ae60;
+           font-weight: 600;
+         }
+
+         .expand-data-btn {
+           display: flex;
+           align-items: center;
+           gap: 0.5rem;
+           padding: 0.5rem 1rem;
+           border: none;
+           border-radius: 8px;
+           background: linear-gradient(135deg, #3498db, #2980b9);
+           color: white;
+           font-size: 0.8rem;
+           font-weight: 600;
+           cursor: pointer;
+           transition: all 0.3s ease;
+           white-space: nowrap;
+         }
+
+         .expand-data-btn:hover:not(:disabled) {
+           background: linear-gradient(135deg, #2980b9, #1f5f8b);
+           transform: translateY(-2px);
+           box-shadow: 0 4px 12px rgba(52, 152, 219, 0.3);
+         }
+
+         .expand-data-btn:disabled {
+           opacity: 0.6;
+           cursor: not-allowed;
+           transform: none;
          }
 
          .traffic-icon.both {

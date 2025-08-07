@@ -144,20 +144,20 @@ export default async function handler(req, res) {
       address: cleanAddress.substring(0, 8) + '...' // Log partial address for privacy
     });
 
-    // Build API parameters with dynamic limits based on time range
+    // Build API parameters with progressive loading limits
     const getLimitForTimeRange = (timeRange) => {
-      if (!timeRange) return 50;
+      if (!timeRange) return 100;
       
       const startTime = new Date(timeRange.start).getTime();
       const endTime = new Date(timeRange.end).getTime();
       const daysDiff = (endTime - startTime) / (1000 * 60 * 60 * 24);
       
-      // Adjust limit based on time range
-      if (daysDiff <= 1) return 100;      // 1 day or less: 100 transactions
-      if (daysDiff <= 3) return 75;       // 3 days or less: 75 transactions
-      if (daysDiff <= 7) return 50;       // 7 days or less: 50 transactions
-      if (daysDiff <= 14) return 30;      // 14 days or less: 30 transactions
-      return 20;                          // 30 days: 20 transactions
+      // For progressive loading, always fetch a good amount of data
+      // This allows us to show immediate results and expand progressively
+      if (daysDiff <= 1) return 150;      // 1 day or less: 150 transactions
+      if (daysDiff <= 7) return 150;      // 7 days or less: 150 transactions
+      if (daysDiff <= 30) return 150;     // 30 days or less: 150 transactions
+      return 150;                         // More than 30 days: 150 transactions
     };
 
     const params = {
@@ -264,9 +264,16 @@ export default async function handler(req, res) {
     });
     console.log('=== PERFORMANCE DEBUG END ===');
 
-    // Return success response
+    // Return success response with progressive loading info
     return res.status(200).json({
       ...enhancedData,
+      progressiveLoading: {
+        hasMoreData: response.data?.length >= getLimitForTimeRange(timeRange),
+        totalFetched: response.data?.length || 0,
+        filteredCount: filteredTransactions.length,
+        timeRange: timeRange,
+        canExpand: response.data?.length >= getLimitForTimeRange(timeRange)
+      },
       requestInfo: {
         address: cleanAddress,
         timestamp: new Date().toISOString(),
