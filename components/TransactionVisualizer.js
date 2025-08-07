@@ -673,13 +673,23 @@ const TransactionVisualizer = ({ data, inputAddress, isDarkMode = true, trafficF
           position: absolute;
           bottom: 10px;
           right: 10px;
-          background: rgba(255, 255, 255, 0.95);
+          background: rgba(0, 0, 0, 0.8);
+          color: white;
           padding: 8px 12px;
           border-radius: 6px;
           font-size: 12px;
+          font-weight: 600;
           z-index: 1000;
-          box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+          box-shadow: 0 2px 8px rgba(0,0,0,0.3);
           backdrop-filter: blur(4px);
+          border: 1px solid rgba(255, 255, 255, 0.2);
+        }
+
+        .visualizer-container.light .stats {
+          background: rgba(255, 255, 255, 0.95);
+          color: #1e293b;
+          border: 1px solid rgba(0, 0, 0, 0.1);
+          box-shadow: 0 2px 8px rgba(0,0,0,0.1);
         }
         
         .stats span {
