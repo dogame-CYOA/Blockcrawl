@@ -113,6 +113,7 @@ export default async function handler(req, res) {
     const params = {
       'api-key': process.env.HELIUS_API_KEY,
       limit: 50,
+      'transaction-types': 'TRANSFER,TOKEN_MINT,TOKEN_BURN,SWAP,TRANSFER_CHECKED',
     };
 
     // Note: Helius API doesn't support time filtering parameters
@@ -226,17 +227,58 @@ async function processTransactions(transactions, inputAddress) {
 
   console.log('Processing', transactions.length, 'transactions');
 
+  // Debug: Log the first transaction structure
+  if (transactions.length > 0) {
+    console.log('Sample transaction structure:', JSON.stringify(transactions[0], null, 2));
+  }
+
   transactions.forEach((tx, index) => {
     // Handle different transaction formats
     if (tx.tokenTransfers) {
+      console.log(`Transaction ${index} has ${tx.tokenTransfers.length} token transfers`);
       tx.tokenTransfers.forEach((transfer, transferIndex) => {
         processTokenTransfer(transfer, tx, index, transferIndex, nodes, edges, inputAddress);
       });
     } else if (tx.nativeTransfers) {
+      console.log(`Transaction ${index} has ${tx.nativeTransfers.length} native transfers`);
       tx.nativeTransfers.forEach((transfer, transferIndex) => {
         processNativeTransfer(transfer, tx, index, transferIndex, nodes, edges, inputAddress);
       });
-    }
+          } else {
+        console.log(`Transaction ${index} has no recognized transfer format. Keys:`, Object.keys(tx));
+        // Try to find transfers in other possible locations
+        if (tx.transfers) {
+          console.log(`Transaction ${index} has transfers array:`, tx.transfers.length);
+          tx.transfers.forEach((transfer, transferIndex) => {
+            if (transfer.type === 'token' || transfer.mint) {
+              processTokenTransfer(transfer, tx, index, transferIndex, nodes, edges, inputAddress);
+            } else if (transfer.type === 'native' || transfer.amount) {
+              processNativeTransfer(transfer, tx, index, transferIndex, nodes, edges, inputAddress);
+            }
+          });
+        }
+        
+        // Check for other possible transfer formats
+        if (tx.tokenTransfers && Array.isArray(tx.tokenTransfers)) {
+          console.log(`Transaction ${index} has tokenTransfers array:`, tx.tokenTransfers.length);
+          tx.tokenTransfers.forEach((transfer, transferIndex) => {
+            processTokenTransfer(transfer, tx, index, transferIndex, nodes, edges, inputAddress);
+          });
+        }
+        
+        if (tx.nativeTransfers && Array.isArray(tx.nativeTransfers)) {
+          console.log(`Transaction ${index} has nativeTransfers array:`, tx.nativeTransfers.length);
+          tx.nativeTransfers.forEach((transfer, transferIndex) => {
+            processNativeTransfer(transfer, tx, index, transferIndex, nodes, edges, inputAddress);
+          });
+        }
+        
+        // Check for account data that might contain transfer info
+        if (tx.accountData) {
+          console.log(`Transaction ${index} has accountData`);
+          // Process account data for potential transfers
+        }
+      }
   });
 
       // Get entity information for all unique addresses
