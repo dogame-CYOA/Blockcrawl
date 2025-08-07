@@ -113,7 +113,6 @@ export default async function handler(req, res) {
     const params = {
       'api-key': process.env.HELIUS_API_KEY,
       limit: 50,
-      'transaction-types': 'TRANSFER,TOKEN_MINT,TOKEN_BURN,SWAP,TRANSFER_CHECKED',
     };
 
     // Note: Helius API doesn't support time filtering parameters
@@ -126,7 +125,7 @@ export default async function handler(req, res) {
       });
     }
 
-    // Use the exact same working format as the test endpoint
+    // Use the enriched transactions endpoint for better data
     const response = await axios.get(`https://api.helius.xyz/v0/addresses/${cleanAddress}/transactions`, {
       params,
       timeout: 60000, // Increased timeout to 60 seconds
@@ -134,6 +133,24 @@ export default async function handler(req, res) {
 
     console.log('Helius API response status:', response.status);
     console.log('Response data length:', response.data?.length || 0);
+    console.log('Response data type:', typeof response.data);
+    console.log('Response data is array:', Array.isArray(response.data));
+    
+    // Debug: Log a sample of the raw response
+    if (response.data && response.data.length > 0) {
+      console.log('Sample raw transaction:', {
+        signature: response.data[0].signature,
+        timestamp: response.data[0].timestamp,
+        keys: Object.keys(response.data[0]),
+        hasTokenTransfers: !!response.data[0].tokenTransfers,
+        hasNativeTransfers: !!response.data[0].nativeTransfers,
+        tokenTransfersLength: response.data[0].tokenTransfers?.length || 0,
+        nativeTransfersLength: response.data[0].nativeTransfers?.length || 0
+      });
+    } else {
+      console.log('No transactions returned from Helius API');
+      console.log('Full response data:', response.data);
+    }
 
     // Filter transactions by time range if provided
     let filteredTransactions = response.data || [];
