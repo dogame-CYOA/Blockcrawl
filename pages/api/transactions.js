@@ -81,26 +81,16 @@ export default async function handler(req, res) {
       limit: 50,
     };
 
-    // Add time range if provided
+    // Temporarily disable time range filtering to ensure API stability
+    // TODO: Re-implement time filtering once we confirm the correct Helius API parameters
     if (timeRange) {
-      // Helius API uses 'before' for the end timestamp and 'until' for the start timestamp
-      // Convert ISO strings to Unix timestamps (seconds)
-      const startTimestamp = Math.floor(new Date(timeRange.start).getTime() / 1000);
-      const endTimestamp = Math.floor(new Date(timeRange.end).getTime() / 1000);
-      
-      // Only add time parameters if they are valid
-      if (startTimestamp > 0 && endTimestamp > 0) {
-        // Temporarily comment out time filtering to debug the basic API call
-        // params.before = endTimestamp;
-        // params.after = startTimestamp;
-        console.log('Time range would be:', { startTimestamp, endTimestamp });
-      }
+      console.log('Time range filtering temporarily disabled for API stability');
     }
 
     // Use the exact same working format as the test endpoint
     const response = await axios.get(`https://api.helius.xyz/v0/addresses/${cleanAddress}/transactions`, {
       params,
-      timeout: 30000,
+      timeout: 60000, // Increased timeout to 60 seconds
     });
 
     console.log('Helius API response status:', response.status);
@@ -132,6 +122,13 @@ export default async function handler(req, res) {
     });
 
     // Handle specific Helius API errors
+    if (error.code === 'ECONNABORTED' || error.message.includes('timeout')) {
+      return res.status(408).json({
+        error: 'Request timeout. The Helius API is taking too long to respond. Please try again.',
+        suggestion: 'Try a different wallet address or reduce the time range.'
+      });
+    }
+
     if (error.response?.status === 429) {
       return res.status(429).json({
         error: 'Helius API rate limit exceeded. Please try again later.',
