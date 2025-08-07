@@ -450,6 +450,129 @@ export default function Home() {
           background: rgba(239, 68, 68, 0.3);
         }
 
+        /* Force all text elements to be visible */
+        .results-container * {
+          color: white !important;
+        }
+
+        /* Specific overrides for transaction details */
+        .results-container .transaction-details * {
+          color: white !important;
+        }
+
+        .results-container .transaction-item * {
+          color: white !important;
+        }
+
+        .results-container .transaction-header * {
+          color: white !important;
+        }
+
+        .results-container .transaction-path * {
+          color: white !important;
+        }
+
+        .results-container .wallet-address * {
+          color: white !important;
+        }
+
+        .results-container .transaction-details-row * {
+          color: white !important;
+        }
+
+        .results-container .detail-item * {
+          color: white !important;
+        }
+
+        /* Ensure labels are slightly transparent but still visible */
+        .results-container .wallet-address .label,
+        .results-container .detail-label {
+          color: rgba(255, 255, 255, 0.9) !important;
+        }
+
+        /* Ensure addresses are bold and visible */
+        .results-container .wallet-address .address {
+          color: white !important;
+          font-weight: bold !important;
+        }
+
+        /* Ensure mint addresses are visible but slightly dimmed */
+        .results-container .mint {
+          color: rgba(255, 255, 255, 0.8) !important;
+        }
+
+        /* Ensure amounts are highlighted */
+        .results-container .amount {
+          color: #10b981 !important;
+          font-weight: bold !important;
+        }
+
+        /* Ensure badges are visible */
+        .results-container .badge {
+          color: white !important;
+          background: rgba(16, 185, 129, 0.3) !important;
+        }
+
+        /* Ensure tab navigation is visible */
+        .results-container .tab-navigation * {
+          color: white !important;
+        }
+
+        .results-container .tab-button {
+          color: white !important;
+          background: rgba(255, 255, 255, 0.1) !important;
+        }
+
+        .results-container .tab-button.active {
+          color: white !important;
+          background: rgba(147, 51, 234, 0.3) !important;
+        }
+
+        /* Ensure transaction types are visible */
+        .results-container .transaction-type {
+          color: white !important;
+        }
+
+        .results-container .transaction-type.nft {
+          background: rgba(236, 72, 153, 0.3) !important;
+          color: white !important;
+        }
+
+        .results-container .transaction-type.spl_token {
+          background: rgba(59, 130, 246, 0.3) !important;
+          color: white !important;
+        }
+
+        /* Ensure transaction directions are visible */
+        .results-container .transaction-direction {
+          color: white !important;
+        }
+
+        .results-container .transaction-direction.incoming {
+          background: rgba(16, 185, 129, 0.3) !important;
+          color: white !important;
+        }
+
+        .results-container .transaction-direction.outgoing {
+          background: rgba(239, 68, 68, 0.3) !important;
+          color: white !important;
+        }
+
+        /* Ensure arrows are visible */
+        .results-container .arrow {
+          color: white !important;
+          font-size: 1.2rem !important;
+        }
+
+        /* Ensure no-transactions message is visible */
+        .results-container .no-transactions * {
+          color: white !important;
+        }
+
+        .results-container .no-transactions p {
+          color: rgba(255, 255, 255, 0.9) !important;
+        }
+
         .rate-limit-info {
           text-align: center;
           margin-top: 1rem;
