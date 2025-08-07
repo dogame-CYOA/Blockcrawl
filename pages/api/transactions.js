@@ -146,22 +146,24 @@ export default async function handler(req, res) {
 
     // Build API parameters with progressive loading limits
     const getLimitForTimeRange = (timeRange) => {
-      if (!timeRange) return 100;
+      if (!timeRange) return 50;
       
       const startTime = new Date(timeRange.start).getTime();
       const endTime = new Date(timeRange.end).getTime();
       const daysDiff = (endTime - startTime) / (1000 * 60 * 60 * 24);
       
-      // For progressive loading, always fetch a good amount of data
-      // This allows us to show immediate results and expand progressively
-      if (daysDiff <= 1) return 150;      // 1 day or less: 150 transactions
-      if (daysDiff <= 7) return 150;      // 7 days or less: 150 transactions
-      if (daysDiff <= 30) return 150;     // 30 days or less: 150 transactions
-      return 150;                         // More than 30 days: 150 transactions
+      // Reduce limits to prevent timeouts
+      if (daysDiff <= 1) return 50;       // 1 day or less: 50 transactions
+      if (daysDiff <= 7) return 50;       // 7 days or less: 50 transactions
+      if (daysDiff <= 30) return 50;      // 30 days or less: 50 transactions
+      return 50;                          // More than 30 days: 50 transactions
     };
 
+    const limit = getLimitForTimeRange(timeRange);
+    console.log(`[DEBUG] Using limit: ${limit} transactions for time range`);
     const params = {
       'api-key': process.env.HELIUS_API_KEY,
+      'limit': limit,
     };
 
     // Note: Helius API doesn't support time filtering parameters
@@ -183,7 +185,7 @@ export default async function handler(req, res) {
         ...params,
         'transactionTypes': ['TRANSFER', 'NFT_SALE', 'NFT_MINT', 'SWAP', 'TOKEN_MINT', 'TOKEN_BURN', 'NFT_LISTING', 'NFT_CANCEL_LISTING', 'NFT_BID', 'NFT_CANCEL_BID']
       },
-      timeout: 60000, // Increased timeout to 60 seconds
+      timeout: 30000, // Reduced timeout to 30 seconds to fail faster
     });
     
     const heliusEndTime = Date.now();
@@ -295,10 +297,11 @@ export default async function handler(req, res) {
     });
 
     // Handle specific Helius API errors
-    if (error.code === 'ECONNABORTED' || error.message.includes('timeout') || error.message.includes('Processing timeout')) {
+    if (error.code === 'ECONNABORTED' || error.message.includes('timeout') || error.message.includes('Processing timeout') || error.response?.status === 504) {
       return res.status(408).json({
-        error: 'Request timeout. The processing is taking too long. Please try again.',
-        suggestion: 'Try a different wallet address, reduce the time range, or try a wallet with fewer transactions.'
+        error: 'Request timeout. The Helius API is taking too long to respond.',
+        suggestion: 'Try a different wallet address, reduce the time range, or try a wallet with fewer transactions.',
+        details: 'The API request exceeded the timeout limit. This usually happens with wallets that have many transactions.'
       });
     }
 
