@@ -83,14 +83,14 @@ export default async function handler(req, res) {
 
     // Add time range if provided
     if (timeRange) {
-      // Helius API uses 'before' for the end timestamp and 'after' for the start timestamp
+      // Helius API uses 'until' for the end timestamp and 'after' for the start timestamp
       // Convert ISO strings to Unix timestamps (seconds)
       const startTimestamp = Math.floor(new Date(timeRange.start).getTime() / 1000);
       const endTimestamp = Math.floor(new Date(timeRange.end).getTime() / 1000);
       
       // Only add time parameters if they are valid
       if (startTimestamp > 0 && endTimestamp > 0) {
-        params.before = endTimestamp;
+        params.until = endTimestamp;
         params.after = startTimestamp;
         console.log('Time range applied:', { startTimestamp, endTimestamp });
       }

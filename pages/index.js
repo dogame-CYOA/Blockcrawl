@@ -302,37 +302,39 @@ export default function Home() {
                 </div>
                              )}
              </div>
-             
-             <div className="traffic-filter-container">
-               <div className="traffic-filter-label">Display Traffic:</div>
-               <div className="traffic-filter-options">
-                 <button
-                   type="button"
-                   className={`traffic-filter-btn ${trafficFilter === 'both' ? 'active' : ''}`}
-                   onClick={() => setTrafficFilter('both')}
-                 >
-                   <span className="traffic-icon both">↔</span>
-                   Both
-                 </button>
-                 <button
-                   type="button"
-                   className={`traffic-filter-btn ${trafficFilter === 'incoming' ? 'active' : ''}`}
-                   onClick={() => setTrafficFilter('incoming')}
-                 >
-                   <span className="traffic-icon incoming">↓</span>
-                   Incoming
-                 </button>
-                 <button
-                   type="button"
-                   className={`traffic-filter-btn ${trafficFilter === 'outgoing' ? 'active' : ''}`}
-                   onClick={() => setTrafficFilter('outgoing')}
-                 >
-                   <span className="traffic-icon outgoing">↑</span>
-                   Outgoing
-                 </button>
-               </div>
-             </div>
            </form>
+
+          {transactionData && (
+            <div className="traffic-filter-container">
+              <div className="traffic-filter-label">Display Traffic:</div>
+              <div className="traffic-filter-options">
+                <button
+                  type="button"
+                  className={`traffic-filter-btn ${trafficFilter === 'both' ? 'active' : ''}`}
+                  onClick={() => setTrafficFilter('both')}
+                >
+                  <span className="traffic-icon both">↔</span>
+                  Both
+                </button>
+                <button
+                  type="button"
+                  className={`traffic-filter-btn ${trafficFilter === 'incoming' ? 'active' : ''}`}
+                  onClick={() => setTrafficFilter('incoming')}
+                >
+                  <span className="traffic-icon incoming">↓</span>
+                  Incoming
+                </button>
+                <button
+                  type="button"
+                  className={`traffic-filter-btn ${trafficFilter === 'outgoing' ? 'active' : ''}`}
+                  onClick={() => setTrafficFilter('outgoing')}
+                >
+                  <span className="traffic-icon outgoing">↑</span>
+                  Outgoing
+                </button>
+              </div>
+            </div>
+          )}
 
           {error && (
             <div className="error-message" role="alert">
