@@ -185,11 +185,20 @@ export default async function handler(req, res) {
       console.log(`Filtered ${response.data?.length || 0} transactions to ${filteredTransactions.length} within time range`);
     }
 
-      // Process the transaction data
-  const transactionData = await processTransactions(filteredTransactions, cleanAddress);
+          // Process the transaction data with timeout protection
+    const processWithTimeout = async () => {
+      return await processTransactions(filteredTransactions, cleanAddress);
+    };
+    
+    const transactionData = await Promise.race([
+      processWithTimeout(),
+      new Promise((_, reject) => 
+        setTimeout(() => reject(new Error('Processing timeout')), 60000) // 60 second timeout
+      )
+    ]);
 
-  // Enhance token metadata by fetching additional info for unknown tokens
-  const enhancedData = await enhanceTokenMetadata(transactionData);
+    // Enhance token metadata by fetching additional info for unknown tokens
+    const enhancedData = await enhanceTokenMetadata(transactionData);
 
     console.log('Transaction data processed successfully:', {
       nodes: transactionData.nodes?.length || 0,
@@ -214,10 +223,10 @@ export default async function handler(req, res) {
     });
 
     // Handle specific Helius API errors
-    if (error.code === 'ECONNABORTED' || error.message.includes('timeout')) {
+    if (error.code === 'ECONNABORTED' || error.message.includes('timeout') || error.message.includes('Processing timeout')) {
       return res.status(408).json({
-        error: 'Request timeout. The Helius API is taking too long to respond. Please try again.',
-        suggestion: 'Try a different wallet address or reduce the time range.'
+        error: 'Request timeout. The processing is taking too long. Please try again.',
+        suggestion: 'Try a different wallet address, reduce the time range, or try a wallet with fewer transactions.'
       });
     }
 
@@ -270,14 +279,30 @@ async function processTransactions(transactions, inputAddress) {
     console.log('Sample transaction structure:', JSON.stringify(transactions[0], null, 2));
   }
 
+  let hasTransfers = false;
+  
   transactions.forEach((tx, index) => {
+    // Skip transactions with no transfers to improve performance
+    const hasTokenTransfers = tx.tokenTransfers && tx.tokenTransfers.length > 0;
+    const hasNativeTransfers = tx.nativeTransfers && tx.nativeTransfers.length > 0;
+    
+    if (!hasTokenTransfers && !hasNativeTransfers) {
+      // Skip empty transactions but still log for debugging
+      if (index < 5) { // Only log first 5 for performance
+        console.log(`Transaction ${index} skipped - no transfers`);
+      }
+      return;
+    }
+    
+    hasTransfers = true;
+    
     // Handle different transaction formats
-    if (tx.tokenTransfers) {
+    if (hasTokenTransfers) {
       console.log(`Transaction ${index} has ${tx.tokenTransfers.length} token transfers`);
       tx.tokenTransfers.forEach((transfer, transferIndex) => {
         processTokenTransfer(transfer, tx, index, transferIndex, nodes, edges, inputAddress);
       });
-    } else if (tx.nativeTransfers) {
+    } else if (hasNativeTransfers) {
       console.log(`Transaction ${index} has ${tx.nativeTransfers.length} native transfers`);
       tx.nativeTransfers.forEach((transfer, transferIndex) => {
         processNativeTransfer(transfer, tx, index, transferIndex, nodes, edges, inputAddress);
@@ -310,12 +335,6 @@ async function processTransactions(transactions, inputAddress) {
           processNativeTransfer(transfer, tx, index, transferIndex, nodes, edges, inputAddress);
         });
       }
-      
-      // Check for account data that might contain transfer info
-      if (tx.accountData) {
-        console.log(`Transaction ${index} has accountData`);
-        // Process account data for potential transfers
-      }
     }
 
     // Also process any accounts involved in the transaction (for broader capture)
@@ -327,12 +346,32 @@ async function processTransactions(transactions, inputAddress) {
       });
     }
   });
+  
+  // Early exit if no transfers found
+  if (!hasTransfers) {
+    console.log('No transfers found in any transactions, returning early');
+    return {
+      nodes: [{
+        id: inputAddress,
+        label: formatAddress(inputAddress),
+        type: 'input',
+        size: 60,
+      }],
+      edges: [],
+      totalTransactions: transactions.length,
+      processedAt: new Date().toISOString(),
+      entityInfo: {},
+      tokenMetadata: {}
+    };
+  }
 
       // Get entity information for all unique addresses
     const uniqueAddresses = Array.from(nodes.keys());
     const entityInfo = await entityIdentifier.batchResolveAddresses(uniqueAddresses);
 
-    // Get token metadata for all unique mint addresses
+      // Get token metadata for all unique mint addresses (only if we have edges)
+  const tokenMetadata = {};
+  if (edges.length > 0) {
     const uniqueMints = new Set();
     edges.forEach(edge => {
       if (edge.mint) {
@@ -340,14 +379,17 @@ async function processTransactions(transactions, inputAddress) {
       }
     });
     
-    const tokenMetadata = {};
-    const mintPromises = Array.from(uniqueMints).map(async (mint) => {
-      const metadata = await entityIdentifier.getTokenMetadata(mint);
-      if (metadata) {
-        tokenMetadata[mint] = metadata;
-      }
-    });
-    await Promise.allSettled(mintPromises);
+    if (uniqueMints.size > 0) {
+      console.log(`Fetching metadata for ${uniqueMints.size} unique tokens`);
+      const mintPromises = Array.from(uniqueMints).map(async (mint) => {
+        const metadata = await entityIdentifier.getTokenMetadata(mint);
+        if (metadata) {
+          tokenMetadata[mint] = metadata;
+        }
+      });
+      await Promise.allSettled(mintPromises);
+    }
+  }
 
     // Enhance nodes with entity information
     const enhancedNodes = Array.from(nodes.values()).map(node => {
@@ -405,6 +447,13 @@ const tokenMetadataCache = new Map();
  */
 async function enhanceTokenMetadata(transactionData) {
   const enhancedData = { ...transactionData };
+  
+  // Early exit if no edges to process
+  if (!enhancedData.edges || enhancedData.edges.length === 0) {
+    console.log('No edges to enhance, skipping token metadata fetching');
+    return enhancedData;
+  }
+  
   const unknownTokens = new Set();
   
   // Collect all unknown token mints (excluding cached ones)
