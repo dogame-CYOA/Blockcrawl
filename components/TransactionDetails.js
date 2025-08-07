@@ -60,9 +60,11 @@ const TransactionDetails = ({ data, inputAddress, isDarkMode = true, trafficFilt
       <div key={edge.id} className="transaction-item">
         <div className="transaction-header">
           <span className="transaction-number">#{index + 1}</span>
+          <span className="header-separator">•</span>
           <span className={`transaction-type ${edge.type.toLowerCase()}`}>
             {edge.type}
           </span>
+          <span className="header-separator">•</span>
           <span className={`transaction-direction ${direction}`}>
             {direction}
           </span>
@@ -158,7 +160,18 @@ const TransactionDetails = ({ data, inputAddress, isDarkMode = true, trafficFilt
         {activeTab === 'nft' && (
           <div className="transaction-list">
             {nftTransactions.length > 0 ? (
-              nftTransactions.map((edge, index) => renderTransaction(edge, index))
+              nftTransactions.map((edge, index) => (
+                <React.Fragment key={edge.id}>
+                  {renderTransaction(edge, index)}
+                  {index < nftTransactions.length - 1 && (
+                    <div className="transaction-separator">
+                      <div className="separator-line"></div>
+                      <div className="separator-dot">•</div>
+                      <div className="separator-line"></div>
+                    </div>
+                  )}
+                </React.Fragment>
+              ))
             ) : (
               <div className="no-transactions">
                 <p>No NFT transfers found for this wallet.</p>
@@ -172,7 +185,18 @@ const TransactionDetails = ({ data, inputAddress, isDarkMode = true, trafficFilt
         {activeTab === 'spl' && (
           <div className="transaction-list">
             {splTransactions.length > 0 ? (
-              splTransactions.map((edge, index) => renderTransaction(edge, index))
+              splTransactions.map((edge, index) => (
+                <React.Fragment key={edge.id}>
+                  {renderTransaction(edge, index)}
+                  {index < splTransactions.length - 1 && (
+                    <div className="transaction-separator">
+                      <div className="separator-line"></div>
+                      <div className="separator-dot">•</div>
+                      <div className="separator-line"></div>
+                    </div>
+                  )}
+                </React.Fragment>
+              ))
             ) : (
               <div className="no-transactions">
                 <p>No SPL token transfers found for this wallet.</p>
@@ -289,13 +313,40 @@ const TransactionDetails = ({ data, inputAddress, isDarkMode = true, trafficFilt
           background: linear-gradient(90deg, transparent, rgba(0, 0, 0, 0.1), transparent);
         }
 
-        .transaction-header {
+        .transaction-separator {
           display: flex;
           align-items: center;
           gap: 15px;
+          margin: 20px 0;
+          padding: 0 30px;
+        }
+
+        .separator-line {
+          flex: 1;
+          height: 1px;
+          background: linear-gradient(90deg, transparent, rgba(0, 0, 0, 0.2), transparent);
+        }
+
+        .separator-dot {
+          color: #94a3b8;
+          font-size: 16px;
+          font-weight: bold;
+          padding: 0 10px;
+        }
+
+        .transaction-header {
+          display: flex;
+          align-items: center;
+          gap: 8px;
           margin-bottom: 25px;
           padding-bottom: 15px;
           border-bottom: 2px solid rgba(0, 0, 0, 0.1);
+        }
+
+        .header-separator {
+          color: #94a3b8;
+          font-weight: bold;
+          font-size: 14px;
         }
 
         .transaction-number {
@@ -574,6 +625,18 @@ const TransactionDetails = ({ data, inputAddress, isDarkMode = true, trafficFilt
 
         .transaction-details.dark .no-transactions p {
           color: rgba(255, 255, 255, 0.9);
+        }
+
+        .transaction-details.dark .header-separator {
+          color: rgba(255, 255, 255, 0.6);
+        }
+
+        .transaction-details.dark .separator-line {
+          background: linear-gradient(90deg, transparent, rgba(255, 255, 255, 0.3), transparent);
+        }
+
+        .transaction-details.dark .separator-dot {
+          color: rgba(255, 255, 255, 0.6);
         }
 
         /* Light theme styles */
