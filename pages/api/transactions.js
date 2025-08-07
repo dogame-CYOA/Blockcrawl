@@ -1,4 +1,5 @@
 import axios from 'axios';
+import { entityIdentifier } from '../../lib/entity-identifier';
 
 /**
  * Serverless function to fetch transaction data securely
@@ -116,7 +117,7 @@ export default async function handler(req, res) {
     }
 
     // Process the transaction data
-    const transactionData = processTransactions(filteredTransactions, cleanAddress);
+    const transactionData = await processTransactions(filteredTransactions, cleanAddress);
 
     console.log('Transaction data processed successfully:', {
       nodes: transactionData.nodes?.length || 0,
@@ -178,7 +179,7 @@ export default async function handler(req, res) {
 /**
  * Process raw transaction data into nodes and edges for visualization
  */
-function processTransactions(transactions, inputAddress) {
+async function processTransactions(transactions, inputAddress) {
   const nodes = new Map();
   const edges = [];
   
@@ -205,16 +206,40 @@ function processTransactions(transactions, inputAddress) {
     }
   });
 
+  // Get entity information for all unique addresses
+  const uniqueAddresses = Array.from(nodes.keys());
+  const entityInfo = await entityIdentifier.batchResolveAddresses(uniqueAddresses);
+
+  // Enhance nodes with entity information
+  const enhancedNodes = Array.from(nodes.values()).map(node => {
+    const entity = entityInfo[node.id];
+    if (entity) {
+      return {
+        ...node,
+        entity: {
+          name: entity.name,
+          type: entity.type,
+          description: entity.description,
+          icon: entityIdentifier.getEntityIcon(entity.type),
+          color: entityIdentifier.getEntityColor(entity.type)
+        }
+      };
+    }
+    return node;
+  });
+
   const result = {
-    nodes: Array.from(nodes.values()),
+    nodes: enhancedNodes,
     edges: edges,
     totalTransactions: transactions.length,
     processedAt: new Date().toISOString(),
+    entityInfo: entityInfo
   };
 
   console.log('Processed result:', {
     nodes: result.nodes.length,
-    edges: result.edges.length
+    edges: result.edges.length,
+    entitiesFound: Object.keys(entityInfo).length
   });
 
   return result;

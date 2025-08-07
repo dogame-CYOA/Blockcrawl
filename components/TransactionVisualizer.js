@@ -66,6 +66,7 @@ const TransactionVisualizer = ({ data, inputAddress, isDarkMode = true, trafficF
             id: node.id,
             label: node.label,
             type: node.type,
+            entity: node.entity, // Include entity information
           }
         })),
         // Add edges
@@ -87,8 +88,20 @@ const TransactionVisualizer = ({ data, inputAddress, isDarkMode = true, trafficF
         {
           selector: 'node',
           style: {
-            'background-color': '#64748b',
-            'label': 'data(label)',
+            'background-color': (ele) => {
+              const node = ele.data();
+              if (node.entity && node.entity.color) {
+                return node.entity.color;
+              }
+              return '#64748b';
+            },
+            'label': (ele) => {
+              const node = ele.data();
+              if (node.entity) {
+                return `${node.entity.icon} ${node.entity.name}`;
+              }
+              return node.label;
+            },
             'text-valign': 'center',
             'text-halign': 'center',
             'font-size': '12px',
@@ -299,6 +312,27 @@ const TransactionVisualizer = ({ data, inputAddress, isDarkMode = true, trafficF
           <div className="legend-line spl"></div>
           <span>SPL Token</span>
         </div>
+        <div className="legend-separator"></div>
+        <div className="legend-item">
+          <div className="legend-color marketplace"></div>
+          <span>🖼️ NFT Marketplace</span>
+        </div>
+        <div className="legend-item">
+          <div className="legend-color dex"></div>
+          <span>🔄 DEX</span>
+        </div>
+        <div className="legend-item">
+          <div className="legend-color staking"></div>
+          <span>🔒 Staking</span>
+        </div>
+        <div className="legend-item">
+          <div className="legend-color exchange"></div>
+          <span>🏦 Exchange</span>
+        </div>
+        <div className="legend-item">
+          <div className="legend-color sns"></div>
+          <span>🌐 SNS Domain</span>
+        </div>
       </div>
       
       <div ref={containerRef} className="cytoscape-container" />
@@ -318,6 +352,12 @@ const TransactionVisualizer = ({ data, inputAddress, isDarkMode = true, trafficF
           <h4>Selected Wallet</h4>
           <p><strong>Address:</strong> {selectedNode.id}</p>
           <p><strong>Type:</strong> {selectedNode.type === 'input' ? 'Input Wallet' : 'Connected Wallet'}</p>
+          {selectedNode.entity && (
+            <div className="entity-info">
+              <p><strong>Entity:</strong> {selectedNode.entity.icon} {selectedNode.entity.name}</p>
+              <p><strong>Category:</strong> {selectedNode.entity.description}</p>
+            </div>
+          )}
           <button onClick={() => setSelectedNode(null)}>×</button>
         </div>
       )}
@@ -480,6 +520,36 @@ const TransactionVisualizer = ({ data, inputAddress, isDarkMode = true, trafficF
         
         .legend-line.spl {
           background-color: #2563eb;
+        }
+        
+        .legend-separator {
+          height: 1px;
+          background-color: rgba(0, 0, 0, 0.2);
+          margin: 8px 0;
+        }
+        
+        .visualizer-container.dark .legend-separator {
+          background-color: rgba(255, 255, 255, 0.2);
+        }
+        
+        .legend-color.marketplace {
+          background-color: #FF6B6B;
+        }
+        
+        .legend-color.dex {
+          background-color: #4ECDC4;
+        }
+        
+        .legend-color.staking {
+          background-color: #45B7D1;
+        }
+        
+        .legend-color.exchange {
+          background-color: #DDA0DD;
+        }
+        
+        .legend-color.sns {
+          background-color: #98D8C8;
         }
         
         .stats {
