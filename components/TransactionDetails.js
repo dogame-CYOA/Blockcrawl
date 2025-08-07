@@ -5,7 +5,7 @@ const TransactionDetails = ({ data, inputAddress, isDarkMode = true }) => {
 
   if (!data || !data.edges || data.edges.length === 0) {
     return (
-      <div className="transaction-details">
+      <div className={`transaction-details ${isDarkMode ? 'dark' : 'light'}`}>
         <h2>Transaction Path Analysis</h2>
         <div className="no-transactions">
           <p>No transaction details available to display.</p>
@@ -212,24 +212,25 @@ const TransactionDetails = ({ data, inputAddress, isDarkMode = true }) => {
         .transaction-list {
           display: flex;
           flex-direction: column;
-          gap: 16px;
+          gap: 20px;
         }
 
         .transaction-item {
           border-radius: 12px;
-          padding: 20px;
+          padding: 24px;
           transition: all 0.2s;
+          margin-bottom: 8px;
         }
 
         .transaction-header {
           display: flex;
           align-items: center;
           gap: 12px;
-          margin-bottom: 16px;
+          margin-bottom: 20px;
         }
 
         .transaction-type {
-          padding: 4px 12px;
+          padding: 6px 16px;
           border-radius: 20px;
           font-size: 12px;
           font-weight: 700;
@@ -237,7 +238,7 @@ const TransactionDetails = ({ data, inputAddress, isDarkMode = true }) => {
         }
 
         .transaction-direction {
-          padding: 4px 12px;
+          padding: 6px 16px;
           border-radius: 20px;
           font-size: 12px;
           font-weight: 600;
@@ -248,8 +249,8 @@ const TransactionDetails = ({ data, inputAddress, isDarkMode = true }) => {
           display: flex;
           align-items: center;
           gap: 16px;
-          margin-bottom: 16px;
-          padding: 16px;
+          margin-bottom: 20px;
+          padding: 20px;
           border-radius: 8px;
         }
 
@@ -275,7 +276,7 @@ const TransactionDetails = ({ data, inputAddress, isDarkMode = true }) => {
         }
 
         .badge {
-          padding: 2px 8px;
+          padding: 4px 10px;
           border-radius: 12px;
           font-size: 10px;
           font-weight: 600;
@@ -292,13 +293,13 @@ const TransactionDetails = ({ data, inputAddress, isDarkMode = true }) => {
         .transaction-details-row {
           display: grid;
           grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
-          gap: 16px;
+          gap: 20px;
         }
 
         .detail-item {
           display: flex;
           flex-direction: column;
-          gap: 4px;
+          gap: 6px;
         }
 
         .detail-label {
@@ -333,36 +334,41 @@ const TransactionDetails = ({ data, inputAddress, isDarkMode = true }) => {
         }
 
         /* Dark theme styles */
-        .transaction-details {
+        .transaction-details.dark {
+          color: white;
+          background: rgba(0, 0, 0, 0.8);
+          border: 1px solid rgba(255, 255, 255, 0.2);
+        }
+
+        .transaction-details.dark h2 {
           color: white;
         }
 
-        .transaction-details h2 {
+        .transaction-details.dark .section-subtitle {
+          color: rgba(255, 255, 255, 0.9);
+        }
+
+        .transaction-details.dark .transaction-tabs {
+          border-bottom: 2px solid rgba(255, 255, 255, 0.3);
+        }
+
+        .transaction-details.dark .tab-button {
+          background: rgba(0, 0, 0, 0.6);
           color: white;
+          border: 1px solid rgba(255, 255, 255, 0.2);
         }
 
-        .section-subtitle {
-          color: rgba(255, 255, 255, 0.8);
-        }
-
-        .transaction-tabs {
-          border-bottom: 2px solid rgba(255, 255, 255, 0.2);
-        }
-
-        .tab-button {
-          background: rgba(255, 255, 255, 0.1);
+        .transaction-details.dark .tab-button.active {
           color: white;
-        }
-
-        .tab-button.active {
-          color: white;
-          background: rgba(147, 51, 234, 0.3);
+          background: rgba(147, 51, 234, 0.6);
           border-bottom-color: #9333ea;
+          border-color: rgba(147, 51, 234, 0.8);
         }
 
-        .tab-button:hover {
+        .transaction-details.dark .tab-button:hover {
           color: white;
-          background: rgba(255, 255, 255, 0.2);
+          background: rgba(0, 0, 0, 0.8);
+          border-color: rgba(255, 255, 255, 0.4);
         }
 
         .tab-icon.nft {
@@ -373,107 +379,118 @@ const TransactionDetails = ({ data, inputAddress, isDarkMode = true }) => {
           background-color: #3b82f6;
         }
 
-        .transaction-item {
-          border: 2px solid rgba(255, 255, 255, 0.2);
-          background: rgba(255, 255, 255, 0.05);
+        .transaction-details.dark .transaction-item {
+          border: 2px solid rgba(255, 255, 255, 0.3);
+          background: rgba(0, 0, 0, 0.6);
+          color: white;
+          box-shadow: 0 4px 12px rgba(0, 0, 0, 0.4);
+        }
+
+        .transaction-details.dark .transaction-item:hover {
+          border-color: rgba(255, 255, 255, 0.5);
+          box-shadow: 0 6px 20px rgba(0, 0, 0, 0.6);
+          background: rgba(0, 0, 0, 0.8);
+          transform: translateY(-2px);
+        }
+
+        .transaction-details.dark .transaction-header {
           color: white;
         }
 
-        .transaction-item:hover {
-          border-color: rgba(255, 255, 255, 0.3);
-          box-shadow: 0 4px 12px rgba(0,0,0,0.1);
-          background: rgba(255, 255, 255, 0.1);
-        }
-
-        .transaction-header {
+        .transaction-details.dark .transaction-type {
           color: white;
         }
 
-        .transaction-type {
+        .transaction-details.dark .transaction-type.nft {
+          background-color: rgba(236, 72, 153, 0.6);
+          color: white;
+          border: 1px solid rgba(236, 72, 153, 0.8);
+        }
+
+        .transaction-details.dark .transaction-type.spl_token {
+          background-color: rgba(59, 130, 246, 0.6);
+          color: white;
+          border: 1px solid rgba(59, 130, 246, 0.8);
+        }
+
+        .transaction-details.dark .transaction-direction {
           color: white;
         }
 
-        .transaction-type.nft {
-          background-color: rgba(236, 72, 153, 0.3);
+        .transaction-details.dark .transaction-direction.incoming {
+          background-color: rgba(16, 185, 129, 0.6);
+          color: white;
+          border: 1px solid rgba(16, 185, 129, 0.8);
+        }
+
+        .transaction-details.dark .transaction-direction.outgoing {
+          background-color: rgba(239, 68, 68, 0.6);
+          color: white;
+          border: 1px solid rgba(239, 68, 68, 0.8);
+        }
+
+        .transaction-details.dark .transaction-path {
+          background-color: rgba(0, 0, 0, 0.4);
+          color: white;
+          border: 1px solid rgba(255, 255, 255, 0.2);
+        }
+
+        .transaction-details.dark .wallet-address .label {
+          color: rgba(255, 255, 255, 0.9);
+        }
+
+        .transaction-details.dark .wallet-address .address {
           color: white;
         }
 
-        .transaction-type.spl_token {
-          background-color: rgba(59, 130, 246, 0.3);
+        .transaction-details.dark .badge {
+          background-color: rgba(16, 185, 129, 0.6);
+          color: white;
+          border: 1px solid rgba(16, 185, 129, 0.8);
+        }
+
+        .transaction-details.dark .arrow {
           color: white;
         }
 
-        .transaction-direction {
+        .transaction-details.dark .transaction-details-row {
           color: white;
         }
 
-        .transaction-direction.incoming {
-          background-color: rgba(16, 185, 129, 0.3);
+        .transaction-details.dark .detail-item {
           color: white;
         }
 
-        .transaction-direction.outgoing {
-          background-color: rgba(239, 68, 68, 0.3);
+        .transaction-details.dark .detail-label {
+          color: rgba(255, 255, 255, 0.9);
+        }
+
+        .transaction-details.dark .detail-value {
           color: white;
         }
 
-        .transaction-path {
-          background-color: rgba(255, 255, 255, 0.05);
-          color: white;
-        }
-
-        .wallet-address .label {
-          color: rgba(255, 255, 255, 0.8);
-        }
-
-        .wallet-address .address {
-          color: white;
-        }
-
-        .badge {
-          background-color: rgba(16, 185, 129, 0.3);
-          color: white;
-        }
-
-        .arrow {
-          color: white;
-        }
-
-        .transaction-details-row {
-          color: white;
-        }
-
-        .detail-item {
-          color: white;
-        }
-
-        .detail-label {
-          color: rgba(255, 255, 255, 0.8);
-        }
-
-        .detail-value {
-          color: white;
-        }
-
-        .detail-value.amount {
+        .transaction-details.dark .detail-value.amount {
           color: #10b981;
         }
 
-        .detail-value.mint {
-          color: rgba(255, 255, 255, 0.7);
+        .transaction-details.dark .detail-value.mint {
+          color: rgba(255, 255, 255, 0.8);
         }
 
-        .no-transactions {
+        .transaction-details.dark .no-transactions {
           color: white;
         }
 
-        .no-transactions p {
-          color: rgba(255, 255, 255, 0.8);
+        .transaction-details.dark .no-transactions p {
+          color: rgba(255, 255, 255, 0.9);
         }
 
         /* Light theme styles */
         .transaction-details.light {
           color: #1e293b;
+          background: rgba(255, 255, 255, 0.9);
+          border: 1px solid rgba(0, 0, 0, 0.1);
+          box-shadow: 0 10px 25px rgba(0, 0, 0, 0.1);
         }
 
         .transaction-details.light h2 {
@@ -481,39 +498,44 @@ const TransactionDetails = ({ data, inputAddress, isDarkMode = true }) => {
         }
 
         .transaction-details.light .section-subtitle {
-          color: rgba(30, 41, 59, 0.7);
+          color: rgba(30, 41, 59, 0.8);
         }
 
         .transaction-details.light .transaction-tabs {
-          border-bottom: 2px solid rgba(0, 0, 0, 0.1);
+          border-bottom: 2px solid rgba(0, 0, 0, 0.15);
         }
 
         .transaction-details.light .tab-button {
-          background: rgba(0, 0, 0, 0.05);
+          background: rgba(0, 0, 0, 0.08);
           color: #1e293b;
+          border: 1px solid rgba(0, 0, 0, 0.1);
         }
 
         .transaction-details.light .tab-button.active {
           color: white;
-          background: rgba(147, 51, 234, 0.8);
+          background: rgba(147, 51, 234, 0.9);
           border-bottom-color: #9333ea;
+          border-color: rgba(147, 51, 234, 1);
         }
 
         .transaction-details.light .tab-button:hover {
           color: #1e293b;
-          background: rgba(0, 0, 0, 0.1);
+          background: rgba(0, 0, 0, 0.12);
+          border-color: rgba(0, 0, 0, 0.2);
         }
 
         .transaction-details.light .transaction-item {
-          border: 2px solid rgba(0, 0, 0, 0.1);
-          background: rgba(255, 255, 255, 0.5);
+          border: 2px solid rgba(0, 0, 0, 0.15);
+          background: rgba(255, 255, 255, 0.7);
           color: #1e293b;
+          box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
         }
 
         .transaction-details.light .transaction-item:hover {
-          border-color: rgba(0, 0, 0, 0.2);
-          box-shadow: 0 4px 12px rgba(0,0,0,0.1);
-          background: rgba(255, 255, 255, 0.8);
+          border-color: rgba(0, 0, 0, 0.25);
+          box-shadow: 0 6px 20px rgba(0, 0, 0, 0.15);
+          background: rgba(255, 255, 255, 0.9);
+          transform: translateY(-2px);
         }
 
         .transaction-details.light .transaction-header {
@@ -525,13 +547,15 @@ const TransactionDetails = ({ data, inputAddress, isDarkMode = true }) => {
         }
 
         .transaction-details.light .transaction-type.nft {
-          background-color: rgba(236, 72, 153, 0.8);
+          background-color: rgba(236, 72, 153, 0.9);
           color: white;
+          border: 1px solid rgba(236, 72, 153, 1);
         }
 
         .transaction-details.light .transaction-type.spl_token {
-          background-color: rgba(59, 130, 246, 0.8);
+          background-color: rgba(59, 130, 246, 0.9);
           color: white;
+          border: 1px solid rgba(59, 130, 246, 1);
         }
 
         .transaction-details.light .transaction-direction {
@@ -539,22 +563,25 @@ const TransactionDetails = ({ data, inputAddress, isDarkMode = true }) => {
         }
 
         .transaction-details.light .transaction-direction.incoming {
-          background-color: rgba(16, 185, 129, 0.8);
+          background-color: rgba(16, 185, 129, 0.9);
           color: white;
+          border: 1px solid rgba(16, 185, 129, 1);
         }
 
         .transaction-details.light .transaction-direction.outgoing {
-          background-color: rgba(239, 68, 68, 0.8);
+          background-color: rgba(239, 68, 68, 0.9);
           color: white;
+          border: 1px solid rgba(239, 68, 68, 1);
         }
 
         .transaction-details.light .transaction-path {
           background-color: rgba(0, 0, 0, 0.05);
           color: #1e293b;
+          border: 1px solid rgba(0, 0, 0, 0.1);
         }
 
         .transaction-details.light .wallet-address .label {
-          color: rgba(30, 41, 59, 0.7);
+          color: rgba(30, 41, 59, 0.8);
         }
 
         .transaction-details.light .wallet-address .address {
@@ -562,8 +589,9 @@ const TransactionDetails = ({ data, inputAddress, isDarkMode = true }) => {
         }
 
         .transaction-details.light .badge {
-          background-color: rgba(16, 185, 129, 0.8);
+          background-color: rgba(16, 185, 129, 0.9);
           color: white;
+          border: 1px solid rgba(16, 185, 129, 1);
         }
 
         .transaction-details.light .arrow {
@@ -579,7 +607,7 @@ const TransactionDetails = ({ data, inputAddress, isDarkMode = true }) => {
         }
 
         .transaction-details.light .detail-label {
-          color: rgba(30, 41, 59, 0.7);
+          color: rgba(30, 41, 59, 0.8);
         }
 
         .transaction-details.light .detail-value {
@@ -591,7 +619,7 @@ const TransactionDetails = ({ data, inputAddress, isDarkMode = true }) => {
         }
 
         .transaction-details.light .detail-value.mint {
-          color: rgba(30, 41, 59, 0.6);
+          color: rgba(30, 41, 59, 0.7);
         }
 
         .transaction-details.light .no-transactions {
@@ -599,7 +627,7 @@ const TransactionDetails = ({ data, inputAddress, isDarkMode = true }) => {
         }
 
         .transaction-details.light .no-transactions p {
-          color: rgba(30, 41, 59, 0.7);
+          color: rgba(30, 41, 59, 0.8);
         }
 
         @media (max-width: 768px) {

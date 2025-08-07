@@ -199,7 +199,7 @@ export default function Home() {
         }
 
         .container.dark {
-          background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+          background: linear-gradient(135deg, #0f0f23 0%, #1a1a2e 50%, #16213e 100%);
           color: white;
         }
 
@@ -215,7 +215,7 @@ export default function Home() {
         }
 
         .container.dark .header {
-          background: rgba(0, 0, 0, 0.1);
+          background: rgba(0, 0, 0, 0.3);
         }
 
         .container.light .header {
@@ -405,7 +405,7 @@ export default function Home() {
         }
 
         .container.dark .results-container {
-          background: rgba(255, 255, 255, 0.1);
+          background: rgba(0, 0, 0, 0.6);
           border: 1px solid rgba(255, 255, 255, 0.2);
           color: white;
         }
@@ -729,7 +729,7 @@ export default function Home() {
         }
 
         .container.dark .footer {
-          background: rgba(0, 0, 0, 0.1);
+          background: rgba(0, 0, 0, 0.3);
         }
 
         .container.light .footer {
