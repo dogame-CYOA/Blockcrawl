@@ -223,6 +223,17 @@ const TransactionDetails = ({ data, inputAddress, isDarkMode = true }) => {
           margin-bottom: 20px;
           border: 2px solid rgba(0, 0, 0, 0.1);
           box-shadow: 0 4px 20px rgba(0, 0, 0, 0.1);
+          position: relative;
+        }
+
+        .transaction-item:not(:last-child)::after {
+          content: '';
+          position: absolute;
+          bottom: -10px;
+          left: 20px;
+          right: 20px;
+          height: 2px;
+          background: linear-gradient(90deg, transparent, rgba(0, 0, 0, 0.1), transparent);
         }
 
         .transaction-header {
@@ -409,6 +420,10 @@ const TransactionDetails = ({ data, inputAddress, isDarkMode = true }) => {
           box-shadow: 0 6px 20px rgba(0, 0, 0, 0.6);
           background: rgba(0, 0, 0, 0.8);
           transform: translateY(-2px);
+        }
+
+        .transaction-details.dark .transaction-item:not(:last-child)::after {
+          background: linear-gradient(90deg, transparent, rgba(255, 255, 255, 0.2), transparent);
         }
 
         .transaction-details.dark .transaction-header {
@@ -648,6 +663,10 @@ const TransactionDetails = ({ data, inputAddress, isDarkMode = true }) => {
 
         .transaction-details.light .no-transactions p {
           color: #64748b;
+        }
+
+        .transaction-details.light .transaction-item:not(:last-child)::after {
+          background: linear-gradient(90deg, transparent, rgba(0, 0, 0, 0.1), transparent);
         }
           color: rgba(30, 41, 59, 0.8);
         }

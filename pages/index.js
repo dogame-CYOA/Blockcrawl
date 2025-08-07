@@ -309,6 +309,7 @@ export default function Home() {
               <TransactionVisualizer 
                 data={transactionData} 
                 inputAddress={walletAddress}
+                isDarkMode={isDarkMode}
               />
               <TransactionDetails 
                 data={transactionData} 

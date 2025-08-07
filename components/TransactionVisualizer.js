@@ -5,10 +5,12 @@ import coseBilkent from 'cytoscape-cose-bilkent';
 // Register the layout extension
 cytoscape.use(coseBilkent);
 
-const TransactionVisualizer = ({ data, inputAddress }) => {
+const TransactionVisualizer = ({ data, inputAddress, isDarkMode = true }) => {
   const containerRef = useRef(null);
   const cyRef = useRef(null);
   const [selectedNode, setSelectedNode] = useState(null);
+  const [hoveredEdge, setHoveredEdge] = useState(null);
+  const [tooltipPosition, setTooltipPosition] = useState({ x: 0, y: 0 });
 
   useEffect(() => {
     if (!data || !containerRef.current) return;
@@ -209,6 +211,21 @@ const TransactionVisualizer = ({ data, inputAddress }) => {
       }
     });
 
+    // Edge hover events for tooltips
+    cyRef.current.on('mouseover', 'edge', (event) => {
+      const edge = event.target;
+      const edgeData = edge.data();
+      setHoveredEdge(edgeData);
+      
+      // Get mouse position for tooltip
+      const mousePos = event.renderedPosition || event.position;
+      setTooltipPosition({ x: mousePos.x, y: mousePos.y });
+    });
+
+    cyRef.current.on('mouseout', 'edge', () => {
+      setHoveredEdge(null);
+    });
+
     // Cleanup function
     return () => {
       if (cyRef.current) {
@@ -229,7 +246,7 @@ const TransactionVisualizer = ({ data, inputAddress }) => {
   }
 
   return (
-    <div className="visualizer-container">
+    <div className={`visualizer-container ${isDarkMode ? 'dark' : 'light'}`}>
       <div className="legend">
         <div className="legend-item">
           <div className="legend-color input"></div>
@@ -265,6 +282,56 @@ const TransactionVisualizer = ({ data, inputAddress }) => {
         </div>
       )}
 
+      {hoveredEdge && (
+        <div 
+          className="edge-tooltip"
+          style={{
+            left: tooltipPosition.x + 10,
+            top: tooltipPosition.y - 10,
+            transform: 'translate(-50%, -100%)'
+          }}
+        >
+          <div className="tooltip-header">
+            <span className={`tooltip-type ${hoveredEdge.type.toLowerCase()}`}>
+              {hoveredEdge.type}
+            </span>
+            <span className="tooltip-direction">
+              {hoveredEdge.source === inputAddress ? 'Outgoing' : 'Incoming'}
+            </span>
+          </div>
+          <div className="tooltip-content">
+            <div className="tooltip-path">
+              <span className="tooltip-address">{hoveredEdge.source.slice(0, 4)}...{hoveredEdge.source.slice(-4)}</span>
+              <span className="tooltip-arrow">→</span>
+              <span className="tooltip-address">{hoveredEdge.target.slice(0, 4)}...{hoveredEdge.target.slice(-4)}</span>
+            </div>
+            {hoveredEdge.type === 'NFT' ? (
+              <div className="tooltip-details">
+                <span><strong>Amount:</strong> 1 NFT</span>
+                <span><strong>Token:</strong> {hoveredEdge.tokenSymbol || 'Unknown'}</span>
+              </div>
+            ) : (
+              <div className="tooltip-details">
+                <span><strong>Amount:</strong> {hoveredEdge.uiAmount || hoveredEdge.amount}</span>
+                <span><strong>Token:</strong> {hoveredEdge.tokenSymbol || 'Unknown'}</span>
+              </div>
+            )}
+            {hoveredEdge.signature && (
+              <div className="tooltip-signature">
+                <a 
+                  href={`https://solscan.io/tx/${hoveredEdge.signature}`}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="tooltip-link"
+                >
+                  View on Solscan →
+                </a>
+              </div>
+            )}
+          </div>
+        </div>
+      )}
+
       <style jsx>{`
         .visualizer-container {
           position: relative;
@@ -291,6 +358,53 @@ const TransactionVisualizer = ({ data, inputAddress }) => {
           z-index: 1000;
           box-shadow: 0 2px 8px rgba(0,0,0,0.1);
           backdrop-filter: blur(4px);
+          color: #1f2937;
+        }
+
+        .visualizer-container.dark .legend {
+          background: rgba(0, 0, 0, 0.9);
+          color: white;
+          border: 1px solid rgba(255, 255, 255, 0.2);
+        }
+
+        .visualizer-container.light .legend {
+          background: rgba(255, 255, 255, 0.95);
+          color: #1f2937;
+          border: 1px solid rgba(0, 0, 0, 0.1);
+        }
+
+        .visualizer-container.light .edge-tooltip {
+          background: rgba(255, 255, 255, 0.95);
+          color: #1f2937;
+          border: 1px solid rgba(0, 0, 0, 0.1);
+          box-shadow: 0 4px 12px rgba(0, 0, 0, 0.2);
+        }
+
+        .visualizer-container.light .tooltip-type.nft {
+          background-color: rgba(236, 72, 153, 0.2);
+          color: #1f2937;
+        }
+
+        .visualizer-container.light .tooltip-type.spl_token {
+          background-color: rgba(59, 130, 246, 0.2);
+          color: #1f2937;
+        }
+
+        .visualizer-container.light .tooltip-direction {
+          background-color: rgba(0, 0, 0, 0.1);
+          color: #1f2937;
+        }
+
+        .visualizer-container.light .tooltip-signature {
+          border-top: 1px solid rgba(0, 0, 0, 0.1);
+        }
+
+        .visualizer-container.light .tooltip-link {
+          color: #2563eb;
+        }
+
+        .visualizer-container.light .tooltip-link:hover {
+          color: #1d4ed8;
         }
         
         .legend-item {
@@ -384,6 +498,105 @@ const TransactionVisualizer = ({ data, inputAddress }) => {
 
         .node-info button:hover {
           color: #dc2626;
+        }
+
+        .edge-tooltip {
+          position: absolute;
+          background: rgba(0, 0, 0, 0.95);
+          color: white;
+          padding: 12px;
+          border-radius: 8px;
+          font-size: 12px;
+          z-index: 1001;
+          box-shadow: 0 4px 12px rgba(0, 0, 0, 0.3);
+          backdrop-filter: blur(4px);
+          border: 1px solid rgba(255, 255, 255, 0.2);
+          max-width: 280px;
+          pointer-events: none;
+        }
+
+        .tooltip-header {
+          display: flex;
+          gap: 8px;
+          margin-bottom: 8px;
+          align-items: center;
+        }
+
+        .tooltip-type {
+          padding: 2px 6px;
+          border-radius: 4px;
+          font-size: 10px;
+          font-weight: 600;
+          text-transform: uppercase;
+        }
+
+        .tooltip-type.nft {
+          background-color: rgba(236, 72, 153, 0.8);
+          color: white;
+        }
+
+        .tooltip-type.spl_token {
+          background-color: rgba(59, 130, 246, 0.8);
+          color: white;
+        }
+
+        .tooltip-direction {
+          padding: 2px 6px;
+          border-radius: 4px;
+          font-size: 10px;
+          font-weight: 600;
+          background-color: rgba(255, 255, 255, 0.2);
+        }
+
+        .tooltip-content {
+          display: flex;
+          flex-direction: column;
+          gap: 6px;
+        }
+
+        .tooltip-path {
+          display: flex;
+          align-items: center;
+          gap: 8px;
+          font-family: 'Courier New', monospace;
+        }
+
+        .tooltip-address {
+          font-weight: 600;
+        }
+
+        .tooltip-arrow {
+          color: #94a3b8;
+          font-weight: bold;
+        }
+
+        .tooltip-details {
+          display: flex;
+          flex-direction: column;
+          gap: 2px;
+        }
+
+        .tooltip-details span {
+          font-size: 11px;
+        }
+
+        .tooltip-signature {
+          margin-top: 4px;
+          padding-top: 4px;
+          border-top: 1px solid rgba(255, 255, 255, 0.2);
+        }
+
+        .tooltip-link {
+          color: #60a5fa;
+          text-decoration: none;
+          font-size: 11px;
+          font-weight: 600;
+          pointer-events: auto;
+        }
+
+        .tooltip-link:hover {
+          color: #93c5fd;
+          text-decoration: underline;
         }
         
         .no-data {
