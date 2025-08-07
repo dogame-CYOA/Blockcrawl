@@ -8,36 +8,48 @@ A modern, secure web application for visualizing Solana blockchain transactions 
 
 ## ✨ Features
 
-- 🔍 **Interactive Graph Visualization** - Pan, zoom, and explore transaction networks
-- 🎨 **Beautiful UI** - Modern gradient design with smooth animations
-- 🔒 **Secure Architecture** - API keys protected via serverless functions
-- ⚡ **Rate Limited** - Protected against abuse with Redis-based rate limiting
-- 📱 **Responsive Design** - Works perfectly on desktop and mobile
-- 🎯 **Transaction Analysis** - Detailed breakdown of NFTs and SPL tokens
+- 🔍 **Interactive Graph Visualization** - Pan, zoom, and explore transaction networks with Cytoscape.js
+- 🎨 **Beautiful UI** - Modern gradient design with smooth animations and dark mode support
+- 🔒 **Secure Architecture** - API keys protected via serverless functions with comprehensive security headers
+- ⚡ **Rate Limited** - Protected against abuse with Redis-based rate limiting (10 requests/minute)
+- 📱 **Responsive Design** - Works perfectly on desktop and mobile devices
+- 🎯 **Transaction Analysis** - Detailed breakdown of NFTs and SPL tokens with metadata
 - 🚀 **Performance Optimized** - Fast loading with efficient data processing
+- 🌙 **Dark Mode** - Toggle between light and dark themes with persistent preferences
+- ⏰ **Time Filters** - Filter transactions by time range (15min, 1h, 24h, 7d, 30d, custom)
+- 🔄 **Traffic Filters** - View incoming, outgoing, or both directions of transactions
+- 🏷️ **Entity Identification** - Automatic detection of known entities (DEXs, marketplaces, wallets, etc.)
+- 📊 **Token Metadata** - Rich token information including symbols, decimals, and project details
+- 🎨 **Visual Indicators** - Color-coded nodes and edges based on entity types and transaction types
+- 🔗 **External Links** - Direct links to Solscan for transaction verification
+- 📈 **Real-time Processing** - Live transaction count and processing status
 
 ## 🛡️ Security Features
 
-- ✅ **API Key Protection**: Never exposed to client-side
-- ✅ **Rate Limiting**: 10 requests per minute per IP
-- ✅ **Input Validation**: Comprehensive address validation
-- ✅ **Error Handling**: No sensitive data in error messages
-- ✅ **Security Headers**: XSS protection, content type options
-- ✅ **HTTPS Enforced**: Secure communication via Vercel
+- ✅ **API Key Protection**: Never exposed to client-side code
+- ✅ **Rate Limiting**: 10 requests per minute per IP with Redis
+- ✅ **Input Validation**: Comprehensive Solana address validation and sanitization
+- ✅ **Error Handling**: Secure error messages without sensitive data exposure
+- ✅ **Security Headers**: XSS protection, content type options, frame options, CSP
+- ✅ **HTTPS Enforced**: Secure communication via Vercel with HSTS
+- ✅ **Request Size Limits**: 1MB maximum request size
+- ✅ **CORS Protection**: Domain-specific CORS policies
+- ✅ **Environment Validation**: Server-side environment variable validation
+- ✅ **Request Logging**: Comprehensive request monitoring and logging
 
 ## 🚀 Quick Start
 
 ### Prerequisites
 - Node.js 18+ installed
 - A Helius API key ([get one here](https://dev.helius.xyz/))
-- An Upstash Redis database ([create one here](https://console.upstash.com/))
+- An Upstash Redis database ([create one here](https://console.upstash.com/)) (optional but recommended)
 
 ### Setup
 
 1. **Clone the repository**
 ```bash
-git clone https://github.com/your-username/solana-tx-visualizer.git
-cd solana-tx-visualizer
+git clone https://github.com/dogame-CYOA/blockcrawl.git
+cd blockcrawl
 ```
 
 2. **Install dependencies**
@@ -47,7 +59,7 @@ npm install
 
 3. **Set up environment variables**
 ```bash
-cp env.example .env.local
+cp .env.example .env.local
 # Edit .env.local and add your API keys
 ```
 
@@ -65,10 +77,10 @@ npm run dev
 Create a `.env.local` file with the following variables:
 
 ```bash
-# Helius API Configuration
+# Helius API Configuration (Required)
 HELIUS_API_KEY=your_helius_api_key_here
 
-# Upstash Redis Configuration (for rate limiting)
+# Upstash Redis Configuration (Optional, for rate limiting)
 UPSTASH_REDIS_REST_URL=your_upstash_redis_url_here
 UPSTASH_REDIS_REST_TOKEN=your_upstash_redis_token_here
 ```
@@ -84,6 +96,7 @@ UPSTASH_REDIS_REST_TOKEN=your_upstash_redis_token_here
 2. **Upstash Redis** (Optional, for rate limiting):
    - Visit [Upstash Console](https://console.upstash.com/)
    - Create a free Redis database
+   - Set eviction policy to "noeviction"
    - Copy the REST URL and token to your `.env.local` file
 
 ## 🚀 Deployment
@@ -107,33 +120,38 @@ git push origin main
 
 Add these environment variables in your Vercel project settings:
 
-- `HELIUS_API_KEY`: Your Helius API key
+- `HELIUS_API_KEY`: Your Helius API key (required)
 - `UPSTASH_REDIS_REST_URL`: Your Upstash Redis URL (optional)
 - `UPSTASH_REDIS_REST_TOKEN`: Your Upstash Redis token (optional)
 
 ## 📁 Project Structure
 
 ```
-solana-tx-visualizer/
-├── components/                 # React components
-│   ├── LoadingSpinner.js      # Loading animation
-│   ├── TransactionDetails.js  # Transaction analysis
-│   └── TransactionVisualizer.js # Graph visualization
-├── lib/                       # Utility libraries
-│   ├── helius.js             # Helius API client
-│   └── ratelimit.js          # Rate limiting utility
-├── pages/                     # Next.js pages
-│   ├── api/                   # API routes
-│   │   └── transactions.js    # Transaction API endpoint
-│   ├── _app.js               # App wrapper
-│   └── index.js              # Main page
-├── styles/                    # Global styles
-│   └── globals.css           # Global CSS
-├── .env.example              # Environment variables template
-├── .gitignore                # Git ignore rules
-├── next.config.js            # Next.js configuration
-├── package.json              # Dependencies
-└── README.md                 # This file
+blockcrawl/
+├── components/                    # React components
+│   ├── LoadingSpinner.js         # Loading animation with record count
+│   ├── TransactionDetails.js     # Transaction analysis with filters
+│   └── TransactionVisualizer.js  # Interactive graph visualization
+├── lib/                          # Utility libraries
+│   ├── entity-identifier.js      # Entity identification and metadata
+│   ├── ratelimit.js              # Rate limiting utility
+│   └── config.js                 # Configuration and validation
+├── pages/                        # Next.js pages
+│   ├── api/                      # API routes
+│   │   ├── transactions.js       # Main transaction API endpoint
+│   │   └── test-helius-simple.js # Debug endpoint
+│   ├── _app.js                   # App wrapper
+│   └── index.js                  # Main page with filters
+├── styles/                       # Global styles
+│   └── globals.css               # Global CSS
+├── public/                       # Static assets
+│   └── favicon.svg               # Application favicon
+├── .env.example                  # Environment variables template
+├── .gitignore                    # Git ignore rules
+├── next.config.js                # Next.js configuration with security headers
+├── package.json                  # Dependencies
+├── README.md                     # This file
+└── SECURITY.md                   # Security documentation
 ```
 
 ## 🔍 How It Works
@@ -141,38 +159,66 @@ solana-tx-visualizer/
 ### 1. User Input
 - User enters a Solana wallet address
 - Frontend validates the address format
+- User can select time range and traffic filters
 - Request is sent to the serverless API
 
 ### 2. API Processing
-- Serverless function validates input
-- Rate limiting is checked
-- Helius API is called to fetch transactions
-- Data is processed into nodes and edges
+- Serverless function validates input and applies rate limiting
+- Helius API is called to fetch enriched transaction data
+- Data is filtered by time range if specified
+- Transactions are processed into nodes and edges
+- Entity identification is performed for all addresses
+- Token metadata is fetched for all tokens
 
 ### 3. Visualization
-- Cytoscape.js renders the transaction graph
-- Interactive features: zoom, pan, node selection
-- Detailed transaction information is displayed
+- Cytoscape.js renders the interactive transaction graph
+- Nodes are color-coded by entity type
+- Edges show transaction details on hover
+- Dark mode support with theme persistence
+- Traffic filters show incoming/outgoing/both directions
 
 ### 4. Security
 - API keys are never exposed to the client
 - Rate limiting prevents abuse
-- Input validation prevents malicious requests
+- Comprehensive input validation and sanitization
+- Security headers prevent XSS, clickjacking, and other attacks
 - Error messages don't leak sensitive information
 
-## 🎨 Customization
+## 🎨 Features in Detail
 
-### Styling
-The application uses CSS-in-JS with styled-jsx. You can customize:
+### Time Filters
+- **15 minutes**: Recent activity
+- **1 hour**: Short-term analysis
+- **24 hours**: Daily overview
+- **7 days**: Weekly patterns
+- **30 days**: Monthly trends
+- **Custom range**: Flexible date selection
 
-- Colors: Update the color variables in components
-- Layout: Modify the CSS in each component
-- Animations: Adjust transition durations and effects
+### Traffic Filters
+- **Both directions**: All transactions
+- **Incoming only**: Transactions received by the wallet
+- **Outgoing only**: Transactions sent from the wallet
 
-### Features
-- **Add more transaction types**: Modify the Helius API call in `lib/helius.js`
-- **Change rate limits**: Update the rate limiting configuration in `lib/ratelimit.js`
-- **Add new visualizations**: Extend the Cytoscape.js configuration in `TransactionVisualizer.js`
+### Entity Identification
+The system automatically identifies and categorizes:
+- 🏪 **NFT Marketplaces**: Magic Eden, Tensor, etc.
+- 💱 **DEXs**: Jupiter, Raydium, Orca, etc.
+- 🏦 **Staking Platforms**: Marinade, Lido, etc.
+- 💼 **Wallets**: Phantom, Solflare, etc.
+- 🌉 **Bridges**: Wormhole, Allbridge, etc.
+- 🏛️ **CEX Hot Wallets**: Exchange wallets
+- 💰 **Lending Platforms**: Solend, Mango, etc.
+- 🌾 **Yield Farming**: Various DeFi protocols
+- 🎮 **Gaming Platforms**: Gaming-related addresses
+- 🔗 **DeFi Protocols**: Various DeFi services
+- 🔮 **Oracles**: Pyth, Switchboard, etc.
+- 🏛️ **DAOs**: Decentralized organizations
+
+### Token Metadata
+- Token symbols and names
+- Decimal places
+- Project information
+- Market data (when available)
 
 ## 🐛 Troubleshooting
 
@@ -188,6 +234,7 @@ The application uses CSS-in-JS with styled-jsx. You can customize:
 
 3. **No transaction data**
    - Try a different wallet address with more activity
+   - Use a longer time range (30 days instead of 15 minutes)
    - Check that the wallet has NFT or SPL token transactions
 
 4. **Build errors**
@@ -196,10 +243,7 @@ The application uses CSS-in-JS with styled-jsx. You can customize:
 
 ### Debug Mode
 
-Enable debug logging by setting:
-```bash
-DEBUG=true
-```
+The application includes comprehensive logging. Check Vercel function logs for detailed debugging information.
 
 ## 🤝 Contributing
 
@@ -220,25 +264,27 @@ This project is licensed under the MIT License - see the [LICENSE](LICENSE) file
 - [Cytoscape.js](https://cytoscape.org/) for graph visualization
 - [Next.js](https://nextjs.org/) for the framework
 - [Vercel](https://vercel.com/) for deployment
+- [Solscan](https://solscan.io/) for transaction verification links
 
 ## 📞 Support
 
 If you encounter any issues or have questions:
 
 1. Check the [troubleshooting section](#-troubleshooting)
-2. Search existing [issues](https://github.com/your-username/solana-tx-visualizer/issues)
+2. Search existing [issues](https://github.com/dogame-CYOA/blockcrawl/issues)
 3. Create a new issue with detailed information
 
 ## 🔮 Future Enhancements
 
 - [ ] Support for deeper transaction analysis (separation > 1)
 - [ ] Export functionality (PNG, SVG, JSON)
-- [ ] Advanced filtering options
+- [ ] Advanced filtering options (by token type, amount, etc.)
 - [ ] Real-time transaction monitoring
 - [ ] Multi-wallet comparison
 - [ ] Historical transaction trends
-- [ ] Dark mode support
 - [ ] Mobile app version
+- [ ] Additional blockchain support
+- [ ] Advanced analytics and insights
 
 ---
 
