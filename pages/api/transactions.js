@@ -12,6 +12,16 @@ export default async function handler(req, res) {
   res.setHeader('X-XSS-Protection', '1; mode=block');
   res.setHeader('Referrer-Policy', 'strict-origin-when-cross-origin');
 
+  // Handle CORS
+  res.setHeader('Access-Control-Allow-Origin', '*');
+  res.setHeader('Access-Control-Allow-Methods', 'POST, OPTIONS');
+  res.setHeader('Access-Control-Allow-Headers', 'Content-Type');
+
+  // Handle preflight requests
+  if (req.method === 'OPTIONS') {
+    return res.status(200).end();
+  }
+
   // Only allow POST requests
   if (req.method !== 'POST') {
     return res.status(405).json({ 
@@ -22,92 +32,97 @@ export default async function handler(req, res) {
 
   // Rate limiting
   const clientIP = getClientIP(req);
-  const rateLimit = await checkRateLimit(clientIP);
+  const rateLimitResult = await checkRateLimit(clientIP);
   
-  // Add rate limit headers
-  res.setHeader('X-RateLimit-Limit', rateLimit.limit);
-  res.setHeader('X-RateLimit-Remaining', rateLimit.remaining);
-  res.setHeader('X-RateLimit-Reset', rateLimit.reset.getTime());
-
-  if (!rateLimit.success) {
+  if (!rateLimitResult.success) {
     return res.status(429).json({
-      error: 'Too many requests',
-      message: 'Rate limit exceeded. Please try again later.',
-      retryAfter: Math.round((rateLimit.reset.getTime() - Date.now()) / 1000),
-    });
-  }
-
-  const { address } = req.body;
-
-  // Validate input
-  if (!address || typeof address !== 'string') {
-    return res.status(400).json({ 
-      error: 'Invalid input',
-      message: 'Valid wallet address is required' 
-    });
-  }
-
-  const trimmedAddress = address.trim();
-
-  // Validate Solana address format
-  if (!HeliusClient.validateAddress(trimmedAddress)) {
-    return res.status(400).json({ 
-      error: 'Invalid address format',
-      message: 'Please provide a valid Solana wallet address' 
-    });
-  }
-
-  // Check for API key
-  if (!process.env.HELIUS_API_KEY) {
-    console.error('Helius API key not configured');
-    return res.status(500).json({ 
-      error: 'Server configuration error',
-      message: 'Service temporarily unavailable' 
+      error: 'Rate limit exceeded',
+      retryAfter: Math.ceil((rateLimitResult.reset - Date.now()) / 1000),
+      limit: rateLimitResult.limit,
+      remaining: rateLimitResult.remaining
     });
   }
 
   try {
-    const helius = new HeliusClient(process.env.HELIUS_API_KEY);
-    const data = await helius.getTransactions(trimmedAddress);
-    
-    // Add metadata
-    const response = {
-      ...data,
-      requestInfo: {
-        address: trimmedAddress,
-        timestamp: new Date().toISOString(),
-        rateLimit: {
-          remaining: rateLimit.remaining,
-          reset: rateLimit.reset.getTime(),
-        }
-      }
-    };
-    
-    res.status(200).json(response);
-  } catch (error) {
-    console.error('API Error:', {
-      message: error.message,
-      address: trimmedAddress,
-      timestamp: new Date().toISOString(),
-      ip: clientIP,
-    });
-
-    // Return appropriate error response
-    if (error.message.includes('Rate limit exceeded')) {
-      res.status(429).json({ 
-        error: 'External API rate limit',
-        message: error.message,
-      });
-    } else if (error.message.includes('Invalid API key')) {
-      res.status(503).json({ 
-        error: 'Service configuration error',
-        message: 'Service temporarily unavailable',
-      });
-    } else {
-      res.status(500).json({ 
-        error: 'Transaction fetch failed',
-        message: 'Unable to fetch transaction data. Please try again later.',
+    // Validate request body
+    if (!req.body || typeof req.body !== 'object') {
+      return res.status(400).json({ 
+        error: 'Invalid request body. Expected JSON object.' 
       });
     }
+
+    const { address } = req.body;
+
+    // Validate wallet address
+    if (!address || typeof address !== 'string') {
+      return res.status(400).json({ 
+        error: 'Wallet address is required and must be a string' 
+      });
+    }
+
+    // Clean and validate Solana address format
+    const cleanAddress = address.trim();
+    
+    // Basic Solana address validation (44 characters, base58)
+    const solanaAddressRegex = /^[1-9A-HJ-NP-Za-km-z]{32,44}$/;
+    if (!solanaAddressRegex.test(cleanAddress)) {
+      return res.status(400).json({ 
+        error: 'Invalid Solana wallet address format' 
+      });
+    }
+
+    // Check if Helius API key is configured
+    if (!process.env.HELIUS_API_KEY) {
+      console.error('HELIUS_API_KEY not configured');
+      return res.status(500).json({ 
+        error: 'API configuration error. Please try again later.' 
+      });
+    }
+
+    // Initialize Helius client
+    const heliusClient = new HeliusClient(process.env.HELIUS_API_KEY);
+
+    // Fetch transaction data
+    const transactionData = await heliusClient.getTransactions(cleanAddress);
+
+    // Return success response with rate limit info
+    return res.status(200).json({
+      ...transactionData,
+      requestInfo: {
+        rateLimit: {
+          limit: rateLimitResult.limit,
+          remaining: rateLimitResult.remaining,
+          reset: rateLimitResult.reset
+        }
+      }
+    });
+
+  } catch (error) {
+    console.error('API Error:', error);
+
+    // Handle specific Helius API errors
+    if (error.response?.status === 429) {
+      return res.status(429).json({
+        error: 'Helius API rate limit exceeded. Please try again later.',
+        retryAfter: 60
+      });
+    }
+
+    if (error.response?.status === 400) {
+      return res.status(400).json({
+        error: 'Invalid wallet address or API request'
+      });
+    }
+
+    if (error.response?.status === 401) {
+      return res.status(500).json({
+        error: 'API configuration error. Please try again later.'
+      });
+    }
+
+    // Generic error response
+    return res.status(500).json({
+      error: 'Failed to fetch transaction data. Please try again later.'
+    });
   }
 } 
