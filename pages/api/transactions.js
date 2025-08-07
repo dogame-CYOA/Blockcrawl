@@ -37,12 +37,19 @@ export default async function handler(req, res) {
       });
     }
 
-    const { address } = req.body;
+    const { address, timeRange } = req.body;
 
     // Validate wallet address
     if (!address || typeof address !== 'string') {
       return res.status(400).json({ 
         error: 'Wallet address is required and must be a string' 
+      });
+    }
+
+    // Validate time range if provided
+    if (timeRange && (typeof timeRange !== 'object' || !timeRange.start || !timeRange.end)) {
+      return res.status(400).json({ 
+        error: 'Invalid time range format. Expected object with start and end properties.' 
       });
     }
 
@@ -68,12 +75,21 @@ export default async function handler(req, res) {
     console.log('API Key configured, making direct Helius API call...');
     console.log('Fetching transactions for address:', cleanAddress);
 
+    // Build API parameters
+    const params = {
+      'api-key': process.env.HELIUS_API_KEY,
+      limit: 50,
+    };
+
+    // Add time range if provided
+    if (timeRange) {
+      params.before = timeRange.end;
+      params.until = timeRange.start;
+    }
+
     // Use the exact same working format as the test endpoint
     const response = await axios.get(`https://api.helius.xyz/v0/addresses/${cleanAddress}/transactions`, {
-      params: {
-        'api-key': process.env.HELIUS_API_KEY,
-        limit: 50,
-      },
+      params,
       timeout: 30000,
     });
 

@@ -11,6 +11,10 @@ export default function Home() {
   const [error, setError] = useState('');
   const [rateLimit, setRateLimit] = useState(null);
   const [isDarkMode, setIsDarkMode] = useState(true);
+  const [timeFilter, setTimeFilter] = useState('24h');
+  const [customStartDate, setCustomStartDate] = useState('');
+  const [customEndDate, setCustomEndDate] = useState('');
+  const [showCustomDate, setShowCustomDate] = useState(false);
 
   // Load theme preference from localStorage
   useEffect(() => {
@@ -29,11 +33,67 @@ export default function Home() {
     setIsDarkMode(!isDarkMode);
   };
 
+  const getTimeRange = () => {
+    const now = new Date();
+    
+    switch (timeFilter) {
+      case '15m':
+        return {
+          start: new Date(now.getTime() - 15 * 60 * 1000).toISOString(),
+          end: now.toISOString()
+        };
+      case '1h':
+        return {
+          start: new Date(now.getTime() - 60 * 60 * 1000).toISOString(),
+          end: now.toISOString()
+        };
+      case '24h':
+        return {
+          start: new Date(now.getTime() - 24 * 60 * 60 * 1000).toISOString(),
+          end: now.toISOString()
+        };
+      case '7d':
+        return {
+          start: new Date(now.getTime() - 7 * 24 * 60 * 60 * 1000).toISOString(),
+          end: now.toISOString()
+        };
+      case '30d':
+        return {
+          start: new Date(now.getTime() - 30 * 24 * 60 * 60 * 1000).toISOString(),
+          end: now.toISOString()
+        };
+      case 'custom':
+        if (customStartDate && customEndDate) {
+          return {
+            start: new Date(customStartDate).toISOString(),
+            end: new Date(customEndDate + 'T23:59:59').toISOString()
+          };
+        }
+        return null;
+      default:
+        return {
+          start: new Date(now.getTime() - 24 * 60 * 60 * 1000).toISOString(),
+          end: now.toISOString()
+        };
+    }
+  };
+
   const handleSubmit = async (e) => {
     e.preventDefault();
     
     if (!walletAddress.trim()) {
       setError('Please enter a wallet address');
+      return;
+    }
+
+    if (timeFilter === 'custom' && (!customStartDate || !customEndDate)) {
+      setError('Please select both start and end dates for custom range');
+      return;
+    }
+
+    const timeRange = getTimeRange();
+    if (!timeRange) {
+      setError('Invalid time range selected');
       return;
     }
 
@@ -48,7 +108,10 @@ export default function Home() {
         headers: {
           'Content-Type': 'application/json',
         },
-        body: JSON.stringify({ address: walletAddress.trim() }),
+        body: JSON.stringify({ 
+          address: walletAddress.trim(),
+          timeRange: timeRange
+        }),
       });
 
       const data = await response.json();
@@ -84,6 +147,12 @@ export default function Home() {
     if (error) {
       setError('');
     }
+  };
+
+  const handleTimeFilterChange = (filter) => {
+    setTimeFilter(filter);
+    setShowCustomDate(filter === 'custom');
+    setError(''); // Clear any existing errors
   };
 
   return (
@@ -148,6 +217,82 @@ export default function Home() {
               >
                 {loading ? 'Analyzing...' : '🔍 Analyze'}
               </button>
+            </div>
+            
+            <div className="time-filter-container">
+              <div className="time-filter-label">Time Range:</div>
+              <div className="time-filter-options">
+                <button
+                  type="button"
+                  className={`time-filter-btn ${timeFilter === '15m' ? 'active' : ''}`}
+                  onClick={() => handleTimeFilterChange('15m')}
+                >
+                  15 min
+                </button>
+                <button
+                  type="button"
+                  className={`time-filter-btn ${timeFilter === '1h' ? 'active' : ''}`}
+                  onClick={() => handleTimeFilterChange('1h')}
+                >
+                  1 hour
+                </button>
+                <button
+                  type="button"
+                  className={`time-filter-btn ${timeFilter === '24h' ? 'active' : ''}`}
+                  onClick={() => handleTimeFilterChange('24h')}
+                >
+                  24 hours
+                </button>
+                <button
+                  type="button"
+                  className={`time-filter-btn ${timeFilter === '7d' ? 'active' : ''}`}
+                  onClick={() => handleTimeFilterChange('7d')}
+                >
+                  7 days
+                </button>
+                <button
+                  type="button"
+                  className={`time-filter-btn ${timeFilter === '30d' ? 'active' : ''}`}
+                  onClick={() => handleTimeFilterChange('30d')}
+                >
+                  30 days
+                </button>
+                <button
+                  type="button"
+                  className={`time-filter-btn ${timeFilter === 'custom' ? 'active' : ''}`}
+                  onClick={() => handleTimeFilterChange('custom')}
+                >
+                  Custom
+                </button>
+              </div>
+              
+              {showCustomDate && (
+                <div className="custom-date-container">
+                  <div className="date-input-group">
+                    <label htmlFor="start-date">Start Date:</label>
+                    <input
+                      type="date"
+                      id="start-date"
+                      value={customStartDate}
+                      onChange={(e) => setCustomStartDate(e.target.value)}
+                      className="date-input"
+                      max={new Date().toISOString().split('T')[0]}
+                    />
+                  </div>
+                  <div className="date-input-group">
+                    <label htmlFor="end-date">End Date:</label>
+                    <input
+                      type="date"
+                      id="end-date"
+                      value={customEndDate}
+                      onChange={(e) => setCustomEndDate(e.target.value)}
+                      className="date-input"
+                      max={new Date().toISOString().split('T')[0]}
+                      min={customStartDate}
+                    />
+                  </div>
+                </div>
+              )}
             </div>
           </form>
 
@@ -757,19 +902,206 @@ export default function Home() {
           color: #047857;
         }
 
-        @media (max-width: 768px) {
-          .header h1 {
-            font-size: 2rem;
-          }
-          
-          .input-group {
-            flex-direction: column;
-          }
-          
-          .search-button {
-            width: 100%;
-          }
+                 .time-filter-container {
+           display: flex;
+           flex-direction: column;
+           gap: 1rem;
+           margin-top: 1rem;
+           padding: 1rem;
+           border-radius: 10px;
+           backdrop-filter: blur(10px);
+           transition: all 0.3s ease;
+         }
+
+         .container.dark .time-filter-container {
+           background: rgba(0, 0, 0, 0.3);
+           border: 1px solid rgba(255, 255, 255, 0.2);
+         }
+
+         .container.light .time-filter-container {
+           background: rgba(255, 255, 255, 0.1);
+           border: 1px solid rgba(0, 0, 0, 0.1);
+         }
+
+                 .time-filter-label {
+           font-size: 0.9rem;
+           font-weight: 600;
+         }
+
+         .container.dark .time-filter-label {
+           color: rgba(255, 255, 255, 0.9);
+         }
+
+         .container.light .time-filter-label {
+           color: #1e293b;
+         }
+
+        .time-filter-options {
+          display: flex;
+          gap: 0.5rem;
+          flex-wrap: wrap;
         }
+
+        .time-filter-btn {
+          padding: 0.5rem 1rem;
+          border: none;
+          border-radius: 8px;
+          background: rgba(255, 255, 255, 0.1);
+          color: white;
+          font-size: 0.8rem;
+          font-weight: 600;
+          cursor: pointer;
+          transition: all 0.3s ease;
+          white-space: nowrap;
+        }
+
+        .container.dark .time-filter-btn {
+          background: rgba(255, 255, 255, 0.05);
+          border: 1px solid rgba(255, 255, 255, 0.1);
+          color: rgba(255, 255, 255, 0.9);
+        }
+
+        .container.light .time-filter-btn {
+          background: rgba(0, 0, 0, 0.05);
+          border: 1px solid rgba(0, 0, 0, 0.1);
+          color: #1e293b;
+        }
+
+        .time-filter-btn:hover:not(:disabled) {
+          transform: translateY(-2px);
+          background: rgba(255, 255, 255, 0.2);
+        }
+
+        .container.dark .time-filter-btn:hover {
+          background: rgba(255, 255, 255, 0.2);
+        }
+
+        .container.light .time-filter-btn:hover {
+          background: rgba(0, 0, 0, 0.2);
+        }
+
+        .time-filter-btn.active {
+          background: rgba(147, 51, 234, 0.3);
+          border: 1px solid rgba(147, 51, 234, 0.5);
+          color: white;
+        }
+
+        .custom-date-container {
+          margin-top: 1rem;
+          padding: 1rem;
+          border-radius: 10px;
+          background: rgba(255, 255, 255, 0.05);
+          border: 1px solid rgba(255, 255, 255, 0.1);
+          backdrop-filter: blur(10px);
+        }
+
+        .container.dark .custom-date-container {
+          background: rgba(0, 0, 0, 0.1);
+          border: 1px solid rgba(255, 255, 255, 0.1);
+        }
+
+        .container.light .custom-date-container {
+          background: rgba(0, 0, 0, 0.05);
+          border: 1px solid rgba(0, 0, 0, 0.1);
+        }
+
+        .date-input-group {
+          display: flex;
+          align-items: center;
+          gap: 0.5rem;
+          margin-bottom: 0.5rem;
+        }
+
+        .date-input-group label {
+          font-size: 0.8rem;
+          color: rgba(255, 255, 255, 0.8);
+          font-weight: 600;
+        }
+
+        .container.dark .date-input-group label {
+          color: rgba(255, 255, 255, 0.9);
+        }
+
+        .container.light .date-input-group label {
+          color: #1e293b;
+        }
+
+        .date-input {
+          padding: 0.5rem 1rem;
+          border: none;
+          border-radius: 8px;
+          font-size: 0.9rem;
+          background: rgba(255, 255, 255, 0.1);
+          color: white;
+          transition: all 0.3s ease;
+        }
+
+        .container.dark .date-input {
+          background: rgba(255, 255, 255, 0.05);
+          color: white;
+        }
+
+        .container.light .date-input {
+          background: rgba(0, 0, 0, 0.05);
+          color: #1e293b;
+        }
+
+        .container.dark .date-input::placeholder {
+          color: rgba(255, 255, 255, 0.7);
+        }
+
+        .container.light .date-input::placeholder {
+          color: rgba(30, 41, 59, 0.7);
+        }
+
+        .container.dark .date-input:focus {
+          outline: none;
+          background: rgba(255, 255, 255, 0.2);
+          box-shadow: 0 0 20px rgba(255, 255, 255, 0.3);
+        }
+
+        .container.light .date-input:focus {
+          outline: none;
+          background: rgba(0, 0, 0, 0.1);
+          box-shadow: 0 0 20px rgba(0, 0, 0, 0.2);
+        }
+
+                 @media (max-width: 768px) {
+           .header h1 {
+             font-size: 2rem;
+           }
+           
+           .input-group {
+             flex-direction: column;
+           }
+           
+           .search-button {
+             width: 100%;
+           }
+
+           .time-filter-options {
+             flex-direction: column;
+             gap: 0.5rem;
+           }
+
+           .time-filter-btn {
+             width: 100%;
+             text-align: center;
+           }
+
+           .custom-date-container {
+             flex-direction: column;
+           }
+
+           .date-input-group {
+             flex-direction: column;
+             align-items: flex-start;
+           }
+
+           .date-input {
+             width: 100%;
+           }
+         }
       `}</style>
     </>
   );
