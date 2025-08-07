@@ -90,10 +90,10 @@ export default async function handler(req, res) {
       
       // Only add time parameters if they are valid
       if (startTimestamp > 0 && endTimestamp > 0) {
-        // Try using the correct parameter names for Helius API
-        // According to Helius docs, these should be the correct parameters
-        params.before = endTimestamp;
-        params.after = startTimestamp;
+        // Temporarily comment out time filtering to debug the basic API call
+        // params.before = endTimestamp;
+        // params.after = startTimestamp;
+        console.log('Time range would be:', { startTimestamp, endTimestamp });
       }
     }
 
