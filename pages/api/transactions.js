@@ -240,7 +240,7 @@ export default async function handler(req, res) {
     const transactionData = await Promise.race([
       processWithTimeout(),
       new Promise((_, reject) => 
-        setTimeout(() => reject(new Error('Processing timeout')), 60000) // 60 second timeout
+        setTimeout(() => reject(new Error('Processing timeout')), 45000) // 45 second timeout (leaving 15s buffer)
       )
     ]);
     
