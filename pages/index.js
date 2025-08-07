@@ -99,6 +99,13 @@ export default function Home() {
       return;
     }
 
+    // Debug logging
+    console.log('Submitting request with:', {
+      address: walletAddress.trim(),
+      timeRange: timeRange,
+      timeFilter: timeFilter
+    });
+
     setLoading(true);
     setError('');
     setTransactionData(null);
@@ -118,6 +125,15 @@ export default function Home() {
       });
 
       const data = await response.json();
+
+      // Debug logging
+      console.log('API Response:', {
+        status: response.status,
+        ok: response.ok,
+        dataLength: data?.edges?.length || 0,
+        nodesLength: data?.nodes?.length || 0,
+        data: data
+      });
 
       // Handle rate limiting
       if (response.status === 429) {
@@ -160,6 +176,16 @@ export default function Home() {
   const handleTimeFilterChange = (filter) => {
     setTimeFilter(filter);
     setShowCustomDate(filter === 'custom');
+    setError(''); // Clear any existing errors
+    
+    // Auto-apply filter if we have transaction data
+    if (transactionData && walletAddress.trim()) {
+      handleSubmit(new Event('submit'));
+    }
+  };
+
+  const handleTrafficFilterChange = (filter) => {
+    setTrafficFilter(filter);
     setError(''); // Clear any existing errors
   };
 
@@ -228,7 +254,17 @@ export default function Home() {
             </div>
             
             <div className="time-filter-container">
-              <div className="time-filter-label">Time Range:</div>
+              <div className="time-filter-label">
+                Time Range: 
+                <span className="active-filter-indicator">
+                  {timeFilter === '15m' && '15 minutes'}
+                  {timeFilter === '1h' && '1 hour'}
+                  {timeFilter === '24h' && '24 hours'}
+                  {timeFilter === '7d' && '7 days'}
+                  {timeFilter === '30d' && '30 days'}
+                  {timeFilter === 'custom' && 'Custom range'}
+                </span>
+              </div>
               <div className="time-filter-options">
                 <button
                   type="button"
@@ -306,12 +342,19 @@ export default function Home() {
 
           {transactionData && (
             <div className="traffic-filter-container">
-              <div className="traffic-filter-label">Display Traffic:</div>
+              <div className="traffic-filter-label">
+                Display Traffic: 
+                <span className="active-filter-indicator">
+                  {trafficFilter === 'both' && 'Both directions'}
+                  {trafficFilter === 'incoming' && 'Incoming only'}
+                  {trafficFilter === 'outgoing' && 'Outgoing only'}
+                </span>
+              </div>
               <div className="traffic-filter-options">
                 <button
                   type="button"
                   className={`traffic-filter-btn ${trafficFilter === 'both' ? 'active' : ''}`}
-                  onClick={() => setTrafficFilter('both')}
+                  onClick={() => handleTrafficFilterChange('both')}
                 >
                   <span className="traffic-icon both">↔</span>
                   Both
@@ -319,7 +362,7 @@ export default function Home() {
                 <button
                   type="button"
                   className={`traffic-filter-btn ${trafficFilter === 'incoming' ? 'active' : ''}`}
-                  onClick={() => setTrafficFilter('incoming')}
+                  onClick={() => handleTrafficFilterChange('incoming')}
                 >
                   <span className="traffic-icon incoming">↓</span>
                   Incoming
@@ -327,7 +370,7 @@ export default function Home() {
                 <button
                   type="button"
                   className={`traffic-filter-btn ${trafficFilter === 'outgoing' ? 'active' : ''}`}
-                  onClick={() => setTrafficFilter('outgoing')}
+                  onClick={() => handleTrafficFilterChange('outgoing')}
                 >
                   <span className="traffic-icon outgoing">↑</span>
                   Outgoing
@@ -346,18 +389,36 @@ export default function Home() {
 
           {transactionData && (
             <div className="results-container">
-                             <TransactionVisualizer 
-                 data={transactionData} 
-                 inputAddress={walletAddress}
-                 isDarkMode={isDarkMode}
-                 trafficFilter={trafficFilter}
-               />
-               <TransactionDetails 
-                 data={transactionData} 
-                 inputAddress={walletAddress}
-                 isDarkMode={isDarkMode}
-                 trafficFilter={trafficFilter}
-               />
+              {transactionData.edges && transactionData.edges.length > 0 ? (
+                <>
+                  <TransactionVisualizer 
+                    data={transactionData} 
+                    inputAddress={walletAddress}
+                    isDarkMode={isDarkMode}
+                    trafficFilter={trafficFilter}
+                  />
+                  <TransactionDetails 
+                    data={transactionData} 
+                    inputAddress={walletAddress}
+                    isDarkMode={isDarkMode}
+                    trafficFilter={trafficFilter}
+                  />
+                </>
+              ) : (
+                <div className="no-data-message">
+                  <div className="no-data-icon">📭</div>
+                  <h3>No transactions found</h3>
+                  <p>No NFT or SPL token transactions were found for this wallet address in the selected time range.</p>
+                  <div className="no-data-suggestions">
+                    <p><strong>Try:</strong></p>
+                    <ul>
+                      <li>Checking a different time range (try 30 days or longer)</li>
+                      <li>Using a different wallet address with more activity</li>
+                      <li>Verifying the wallet address is correct</li>
+                    </ul>
+                  </div>
+                </div>
+              )}
             </div>
           )}
 
@@ -582,6 +643,58 @@ export default function Home() {
           background: rgba(239, 68, 68, 0.1);
           border: 1px solid rgba(239, 68, 68, 0.3);
           color: #dc2626;
+        }
+
+        .no-data-message {
+          text-align: center;
+          padding: 3rem 2rem;
+          background: rgba(255, 255, 255, 0.05);
+          border-radius: 12px;
+          border: 1px solid rgba(255, 255, 255, 0.1);
+          backdrop-filter: blur(10px);
+        }
+
+        .container.dark .no-data-message {
+          background: rgba(0, 0, 0, 0.2);
+          border: 1px solid rgba(255, 255, 255, 0.1);
+        }
+
+        .container.light .no-data-message {
+          background: rgba(255, 255, 255, 0.8);
+          border: 1px solid rgba(0, 0, 0, 0.1);
+        }
+
+        .no-data-icon {
+          font-size: 4rem;
+          margin-bottom: 1rem;
+        }
+
+        .no-data-message h3 {
+          margin: 0 0 1rem 0;
+          font-size: 1.5rem;
+          font-weight: 600;
+        }
+
+        .no-data-message p {
+          margin: 0 0 1.5rem 0;
+          opacity: 0.8;
+          line-height: 1.6;
+        }
+
+        .no-data-suggestions {
+          text-align: left;
+          max-width: 400px;
+          margin: 0 auto;
+        }
+
+        .no-data-suggestions ul {
+          margin: 0.5rem 0 0 0;
+          padding-left: 1.5rem;
+        }
+
+        .no-data-suggestions li {
+          margin: 0.5rem 0;
+          opacity: 0.8;
         }
 
         .results-container {
@@ -969,6 +1082,9 @@ export default function Home() {
                  .time-filter-label {
            font-size: 0.9rem;
            font-weight: 600;
+           display: flex;
+           align-items: center;
+           gap: 0.5rem;
          }
 
          .container.dark .time-filter-label {
@@ -977,6 +1093,21 @@ export default function Home() {
 
          .container.light .time-filter-label {
            color: #1e293b;
+         }
+
+         .active-filter-indicator {
+           font-weight: 400;
+           font-size: 0.8em;
+           opacity: 0.8;
+           padding: 0.2rem 0.5rem;
+           background: rgba(59, 130, 246, 0.1);
+           border-radius: 0.25rem;
+           border: 1px solid rgba(59, 130, 246, 0.2);
+         }
+
+         .container.dark .active-filter-indicator {
+           background: rgba(59, 130, 246, 0.2);
+           border-color: rgba(59, 130, 246, 0.3);
          }
 
                  .time-filter-options {
@@ -1137,6 +1268,9 @@ export default function Home() {
          .traffic-filter-label {
            font-size: 0.9rem;
            font-weight: 600;
+           display: flex;
+           align-items: center;
+           gap: 0.5rem;
          }
 
          .container.dark .traffic-filter-label {
