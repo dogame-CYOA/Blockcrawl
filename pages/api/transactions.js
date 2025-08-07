@@ -88,8 +88,13 @@ export default async function handler(req, res) {
       const startTimestamp = Math.floor(new Date(timeRange.start).getTime() / 1000);
       const endTimestamp = Math.floor(new Date(timeRange.end).getTime() / 1000);
       
-      params.before = endTimestamp;
-      params.until = startTimestamp;
+      // Only add time parameters if they are valid
+      if (startTimestamp > 0 && endTimestamp > 0) {
+        // Try using the correct parameter names for Helius API
+        // According to Helius docs, these should be the correct parameters
+        params.before = endTimestamp;
+        params.after = startTimestamp;
+      }
     }
 
     // Use the exact same working format as the test endpoint
