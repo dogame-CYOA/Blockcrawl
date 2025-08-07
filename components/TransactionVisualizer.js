@@ -13,6 +13,7 @@ const TransactionVisualizer = ({ data, inputAddress, isDarkMode = true, trafficF
   const [tooltipPosition, setTooltipPosition] = useState({ x: 0, y: 0 });
   const [layoutType, setLayoutType] = useState('spread'); // 'spread' or 'compact'
   const [expandedNodes, setExpandedNodes] = useState(new Set());
+  const [expandingNode, setExpandingNode] = useState(null); // Track which node is being expanded
 
   // Filter data based on traffic filter
   const filteredEdges = React.useMemo(() => {
@@ -206,29 +207,22 @@ const TransactionVisualizer = ({ data, inputAddress, isDarkMode = true, trafficF
         animate: true,
         animationDuration: 1000,
         fit: true,
-        padding: 150,
-        nodeRepulsion: 300000, // Further increased repulsion to eliminate overlap
-        idealEdgeLength: 300, // Further increased ideal edge length
-        edgeElasticity: 300, // Further increased edge elasticity
-        nestingFactor: 0.01, // Minimal nesting factor
-        gravity: 0.05, // Minimal gravity
-        numIter: 4000, // More iterations for optimal layout
+        padding: 80,
+        nodeRepulsion: 150000, // Reduced repulsion for closer nodes
+        idealEdgeLength: 150, // Reduced ideal edge length
+        edgeElasticity: 150, // Reduced edge elasticity
+        nestingFactor: 0.05, // Slightly increased nesting factor
+        gravity: 0.15, // Increased gravity to bring nodes closer
+        numIter: 3000, // Reduced iterations for faster layout
         tile: false, // Disable tiling to allow free positioning
-        tilingPaddingVertical: 100,
-        tilingPaddingHorizontal: 100,
+        tilingPaddingVertical: 50,
+        tilingPaddingHorizontal: 50,
         // Additional parameters for better spacing
         nodeDimensionsIncludeLabels: true,
         randomize: true, // Start with random positions for better distribution
-        componentSpacing: 200, // Increased space between disconnected components
-        nodeOverlap: 0, // No overlap allowed
+        componentSpacing: 100, // Reduced space between disconnected components
+        nodeOverlap: 10, // Allow minimal overlap
         refresh: 30, // Refresh rate during animation
-        // Force-directed layout improvements
-        quality: 'draft', // Start with draft quality for speed
-        stop: function() {
-          // Switch to production quality after initial layout
-          this.options.quality = 'production';
-          this.run();
-        }
       },
 
       // Enable panning and zooming
@@ -267,12 +261,15 @@ const TransactionVisualizer = ({ data, inputAddress, isDarkMode = true, trafficF
       const nodeData = node.data();
       
       if (onExpandNode && !expandedNodes.has(nodeData.id)) {
-        // Call the expand function
-        onExpandNode(nodeData.id, nodeData);
-        setExpandedNodes(prev => new Set([...prev, nodeData.id]));
+        // Show expansion loading state
+        setExpandingNode(nodeData.id);
         
-        // Remove expandable indicator
-        node.removeClass('expandable');
+        // Call the expand function
+        onExpandNode(nodeData.id, nodeData).finally(() => {
+          setExpandingNode(null);
+          setExpandedNodes(prev => new Set([...prev, nodeData.id]));
+          node.removeClass('expandable');
+        });
       }
     });
 
@@ -409,7 +406,14 @@ const TransactionVisualizer = ({ data, inputAddress, isDarkMode = true, trafficF
         </div>
       </div>
       
-      <div ref={containerRef} className="cytoscape-container" />
+             <div ref={containerRef} className="cytoscape-container" />
+       
+       {expandingNode && (
+         <div className="expansion-loading">
+           <div className="expansion-spinner"></div>
+           <span>Expanding node...</span>
+         </div>
+       )}
       
              <div className="stats">
          <span>Nodes: {filteredNodes ? filteredNodes.length : data.nodes.length}</span>
@@ -709,6 +713,51 @@ const TransactionVisualizer = ({ data, inputAddress, isDarkMode = true, trafficF
          .visualizer-container.dark .expand-hint {
            background: rgba(245, 158, 11, 0.2);
            color: #fbbf24;
+         }
+
+         .expansion-loading {
+           position: absolute;
+           top: 50%;
+           left: 50%;
+           transform: translate(-50%, -50%);
+           background: rgba(0, 0, 0, 0.8);
+           color: white;
+           padding: 16px 24px;
+           border-radius: 8px;
+           display: flex;
+           align-items: center;
+           gap: 12px;
+           font-size: 14px;
+           font-weight: 500;
+           z-index: 1002;
+           backdrop-filter: blur(4px);
+           border: 1px solid rgba(255, 255, 255, 0.2);
+         }
+
+         .visualizer-container.light .expansion-loading {
+           background: rgba(255, 255, 255, 0.95);
+           color: #1e293b;
+           border: 1px solid rgba(0, 0, 0, 0.1);
+           box-shadow: 0 4px 12px rgba(0, 0, 0, 0.2);
+         }
+
+         .expansion-spinner {
+           width: 20px;
+           height: 20px;
+           border: 2px solid rgba(255, 255, 255, 0.3);
+           border-top: 2px solid #f59e0b;
+           border-radius: 50%;
+           animation: spin 1s linear infinite;
+         }
+
+         .visualizer-container.light .expansion-spinner {
+           border: 2px solid rgba(0, 0, 0, 0.1);
+           border-top: 2px solid #f59e0b;
+         }
+
+         @keyframes spin {
+           0% { transform: rotate(0deg); }
+           100% { transform: rotate(360deg); }
          }
           font-weight: 500;
         }

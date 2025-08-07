@@ -196,8 +196,6 @@ export default function Home() {
 
   const handleExpandNode = async (nodeId, nodeData) => {
     try {
-      setLoading(true);
-      
       console.log('Expanding node:', nodeId);
       
       const timeRange = getTimeRange();
@@ -245,8 +243,6 @@ export default function Home() {
     } catch (error) {
       console.error('Error expanding node:', error);
       setError('Failed to expand node. Please try again.');
-    } finally {
-      setLoading(false);
     }
   };
 
