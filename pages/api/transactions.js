@@ -433,10 +433,18 @@ async function processTransactions(transactions, inputAddress) {
     };
   }
 
-        // Get entity information for all unique addresses
+        // Get entity information for addresses that appear in actual transfers only
   const entityStartTime = Date.now();
-  const uniqueAddresses = Array.from(nodes.keys());
-  console.log(`[DEBUG] processTransactions: Resolving ${uniqueAddresses.length} addresses`);
+  const addressesInTransfers = new Set();
+  
+  // Only collect addresses that appear in actual transfers (not just accountData)
+  edges.forEach(edge => {
+    addressesInTransfers.add(edge.source);
+    addressesInTransfers.add(edge.target);
+  });
+  
+  const uniqueAddresses = Array.from(addressesInTransfers);
+  console.log(`[DEBUG] processTransactions: Resolving ${uniqueAddresses.length} addresses (only those in actual transfers)`);
   
   const entityInfo = await entityIdentifier.batchResolveAddresses(uniqueAddresses);
   
