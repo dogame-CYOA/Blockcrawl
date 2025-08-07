@@ -81,12 +81,11 @@ export default async function handler(req, res) {
       limit: 50,
     };
 
-    // Add time range if provided
+    // Note: Helius API doesn't support time filtering parameters
+    // We'll filter transactions on the server side after fetching
     if (timeRange) {
-      // Temporarily disable time filtering to fix API errors
-      // TODO: Research correct Helius API time parameters
-      console.log('Time filtering temporarily disabled to fix API errors');
-      console.log('Time range would be:', {
+      console.log('Time filtering will be applied after fetching data');
+      console.log('Time range:', {
         start: timeRange.start,
         end: timeRange.end
       });
@@ -101,8 +100,23 @@ export default async function handler(req, res) {
     console.log('Helius API response status:', response.status);
     console.log('Response data length:', response.data?.length || 0);
 
+    // Filter transactions by time range if provided
+    let filteredTransactions = response.data || [];
+    if (timeRange) {
+      const startTime = new Date(timeRange.start).getTime();
+      const endTime = new Date(timeRange.end).getTime();
+      
+      filteredTransactions = filteredTransactions.filter(tx => {
+        // Convert timestamp to milliseconds if it's in seconds
+        const txTime = tx.timestamp ? (tx.timestamp > 1e10 ? tx.timestamp : tx.timestamp * 1000) : 0;
+        return txTime >= startTime && txTime <= endTime;
+      });
+      
+      console.log(`Filtered ${response.data?.length || 0} transactions to ${filteredTransactions.length} within time range`);
+    }
+
     // Process the transaction data
-    const transactionData = processTransactions(response.data || [], cleanAddress);
+    const transactionData = processTransactions(filteredTransactions, cleanAddress);
 
     console.log('Transaction data processed successfully:', {
       nodes: transactionData.nodes?.length || 0,
