@@ -767,6 +767,7 @@ const TransactionDetails = ({ data, inputAddress, isDarkMode = true, trafficFilt
 
         .transaction-details.light .transaction-type {
           color: white;
+          font-weight: 600;
         }
 
         .transaction-details.light .transaction-type.nft {

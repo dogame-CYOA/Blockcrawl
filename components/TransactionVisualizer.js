@@ -5,13 +5,14 @@ import coseBilkent from 'cytoscape-cose-bilkent';
 // Register the layout extension
 cytoscape.use(coseBilkent);
 
-const TransactionVisualizer = ({ data, inputAddress, isDarkMode = true, trafficFilter = 'both' }) => {
+const TransactionVisualizer = ({ data, inputAddress, isDarkMode = true, trafficFilter = 'both', onExpandNode }) => {
   const containerRef = useRef(null);
   const cyRef = useRef(null);
   const [selectedNode, setSelectedNode] = useState(null);
   const [hoveredEdge, setHoveredEdge] = useState(null);
   const [tooltipPosition, setTooltipPosition] = useState({ x: 0, y: 0 });
   const [layoutType, setLayoutType] = useState('spread'); // 'spread' or 'compact'
+  const [expandedNodes, setExpandedNodes] = useState(new Set());
 
   // Filter data based on traffic filter
   const filteredEdges = React.useMemo(() => {
@@ -188,6 +189,16 @@ const TransactionVisualizer = ({ data, inputAddress, isDarkMode = true, trafficF
             'opacity': 0.3,
           }
         },
+        // Expandable node indicator
+        {
+          selector: 'node.expandable',
+          style: {
+            'border-width': 4,
+            'border-color': '#f59e0b',
+            'border-style': 'dashed',
+            'border-opacity': 0.8,
+          }
+        },
       ],
 
       layout: {
@@ -195,22 +206,29 @@ const TransactionVisualizer = ({ data, inputAddress, isDarkMode = true, trafficF
         animate: true,
         animationDuration: 1000,
         fit: true,
-        padding: 100,
-        nodeRepulsion: 200000, // Increased repulsion to spread nodes further apart
-        idealEdgeLength: 200, // Increased ideal edge length
-        edgeElasticity: 200, // Increased edge elasticity
-        nestingFactor: 0.05, // Reduced nesting factor to prevent clustering
-        gravity: 0.1, // Reduced gravity to allow more spread
-        numIter: 3000, // More iterations for better layout
+        padding: 150,
+        nodeRepulsion: 300000, // Further increased repulsion to eliminate overlap
+        idealEdgeLength: 300, // Further increased ideal edge length
+        edgeElasticity: 300, // Further increased edge elasticity
+        nestingFactor: 0.01, // Minimal nesting factor
+        gravity: 0.05, // Minimal gravity
+        numIter: 4000, // More iterations for optimal layout
         tile: false, // Disable tiling to allow free positioning
-        tilingPaddingVertical: 50,
-        tilingPaddingHorizontal: 50,
+        tilingPaddingVertical: 100,
+        tilingPaddingHorizontal: 100,
         // Additional parameters for better spacing
         nodeDimensionsIncludeLabels: true,
         randomize: true, // Start with random positions for better distribution
-        componentSpacing: 100, // Space between disconnected components
-        nodeOverlap: 20, // Allow some overlap but not too much
+        componentSpacing: 200, // Increased space between disconnected components
+        nodeOverlap: 0, // No overlap allowed
         refresh: 30, // Refresh rate during animation
+        // Force-directed layout improvements
+        quality: 'draft', // Start with draft quality for speed
+        stop: function() {
+          // Switch to production quality after initial layout
+          this.options.quality = 'production';
+          this.run();
+        }
       },
 
       // Enable panning and zooming
@@ -235,6 +253,27 @@ const TransactionVisualizer = ({ data, inputAddress, isDarkMode = true, trafficF
       
       connectedEdges.addClass('highlighted');
       cyRef.current.edges().not(connectedEdges).addClass('dimmed');
+      
+      // Handle node expansion (double-click or if expand callback is provided)
+      if (onExpandNode && !expandedNodes.has(nodeData.id)) {
+        // Add visual indicator that node is expandable
+        node.addClass('expandable');
+      }
+    });
+
+    // Add double-click event for node expansion
+    cyRef.current.on('cxttap', 'node', (event) => {
+      const node = event.target;
+      const nodeData = node.data();
+      
+      if (onExpandNode && !expandedNodes.has(nodeData.id)) {
+        // Call the expand function
+        onExpandNode(nodeData.id, nodeData);
+        setExpandedNodes(prev => new Set([...prev, nodeData.id]));
+        
+        // Remove expandable indicator
+        node.removeClass('expandable');
+      }
     });
 
     // Clear selection when clicking on background
@@ -372,15 +411,20 @@ const TransactionVisualizer = ({ data, inputAddress, isDarkMode = true, trafficF
       
       <div ref={containerRef} className="cytoscape-container" />
       
-      <div className="stats">
-        <span>Nodes: {filteredNodes ? filteredNodes.length : data.nodes.length}</span>
-        <span>Transactions: {filteredEdges ? filteredEdges.length : data.edges.length}</span>
-        {trafficFilter !== 'both' && (
-          <span className="filter-indicator">
-            Showing: {trafficFilter === 'incoming' ? 'Incoming' : 'Outgoing'} only
-          </span>
-        )}
-      </div>
+             <div className="stats">
+         <span>Nodes: {filteredNodes ? filteredNodes.length : data.nodes.length}</span>
+         <span>Transactions: {filteredEdges ? filteredEdges.length : data.edges.length}</span>
+         {trafficFilter !== 'both' && (
+           <span className="filter-indicator">
+             Showing: {trafficFilter === 'incoming' ? 'Incoming' : 'Outgoing'} only
+           </span>
+         )}
+         {onExpandNode && (
+           <span className="expand-hint">
+             💡 Right-click nodes to expand
+           </span>
+         )}
+       </div>
 
       {selectedNode && (
         <div className="node-info">
@@ -638,19 +682,34 @@ const TransactionVisualizer = ({ data, inputAddress, isDarkMode = true, trafficF
           margin-right: 12px;
         }
         
-        .filter-indicator {
-          background: rgba(147, 51, 234, 0.1);
-          color: #9333ea;
-          padding: 2px 6px;
-          border-radius: 4px;
-          font-weight: 600;
-          font-size: 11px;
-        }
-        
-        .visualizer-container.dark .filter-indicator {
-          background: rgba(147, 51, 234, 0.2);
-          color: #a855f7;
-        }
+                 .filter-indicator {
+           background: rgba(147, 51, 234, 0.1);
+           color: #9333ea;
+           padding: 2px 6px;
+           border-radius: 4px;
+           font-weight: 600;
+           font-size: 11px;
+         }
+         
+         .visualizer-container.dark .filter-indicator {
+           background: rgba(147, 51, 234, 0.2);
+           color: #a855f7;
+         }
+
+         .expand-hint {
+           background: rgba(245, 158, 11, 0.1);
+           color: #f59e0b;
+           padding: 2px 6px;
+           border-radius: 4px;
+           font-weight: 600;
+           font-size: 11px;
+           margin-left: 8px;
+         }
+         
+         .visualizer-container.dark .expand-hint {
+           background: rgba(245, 158, 11, 0.2);
+           color: #fbbf24;
+         }
           font-weight: 500;
         }
 

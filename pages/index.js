@@ -17,6 +17,7 @@ export default function Home() {
   const [showCustomDate, setShowCustomDate] = useState(false);
   const [trafficFilter, setTrafficFilter] = useState('both'); // 'incoming', 'outgoing', 'both'
   const [recordCount, setRecordCount] = useState(null); // Track number of records found
+  const [expandedData, setExpandedData] = useState({}); // Store expanded node data
 
   // Load theme preference from localStorage
   useEffect(() => {
@@ -187,6 +188,66 @@ export default function Home() {
   const handleTrafficFilterChange = (filter) => {
     setTrafficFilter(filter);
     setError(''); // Clear any existing errors
+    // Auto-apply filter if we have transaction data
+    if (transactionData && walletAddress.trim()) {
+      handleSubmit(new Event('submit'));
+    }
+  };
+
+  const handleExpandNode = async (nodeId, nodeData) => {
+    try {
+      setLoading(true);
+      
+      console.log('Expanding node:', nodeId);
+      
+      const timeRange = getTimeRange();
+      const response = await fetch('/api/transactions', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          address: nodeId,
+          timeRange: timeRange
+        }),
+      });
+
+      if (!response.ok) {
+        throw new Error('Failed to fetch expanded data');
+      }
+
+      const expandedNodeData = await response.json();
+      
+      // Merge the expanded data with existing data
+      setExpandedData(prev => ({
+        ...prev,
+        [nodeId]: expandedNodeData
+      }));
+
+      // Update the main transaction data to include expanded nodes
+      if (transactionData && expandedNodeData.nodes && expandedNodeData.edges) {
+        const mergedData = {
+          nodes: [...transactionData.nodes, ...expandedNodeData.nodes.filter(node => 
+            !transactionData.nodes.find(existing => existing.id === node.id)
+          )],
+          edges: [...transactionData.edges, ...expandedNodeData.edges.filter(edge => 
+            !transactionData.edges.find(existing => existing.id === edge.id)
+          )],
+          totalTransactions: transactionData.totalTransactions + expandedNodeData.totalTransactions,
+          processedAt: new Date().toISOString(),
+          entityInfo: { ...transactionData.entityInfo, ...expandedNodeData.entityInfo },
+          tokenMetadata: { ...transactionData.tokenMetadata, ...expandedNodeData.tokenMetadata }
+        };
+        
+        setTransactionData(mergedData);
+      }
+
+    } catch (error) {
+      console.error('Error expanding node:', error);
+      setError('Failed to expand node. Please try again.');
+    } finally {
+      setLoading(false);
+    }
   };
 
   return (
@@ -396,6 +457,7 @@ export default function Home() {
                     inputAddress={walletAddress}
                     isDarkMode={isDarkMode}
                     trafficFilter={trafficFilter}
+                    onExpandNode={handleExpandNode}
                   />
                   <TransactionDetails 
                     data={transactionData} 
