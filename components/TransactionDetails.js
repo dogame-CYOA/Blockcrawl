@@ -40,6 +40,7 @@ const TransactionDetails = ({ data, inputAddress, isDarkMode = true }) => {
     return (
       <div key={edge.id} className="transaction-item">
         <div className="transaction-header">
+          <span className="transaction-number">#{index + 1}</span>
           <span className={`transaction-type ${edge.type.toLowerCase()}`}>
             {edge.type}
           </span>
@@ -209,24 +210,39 @@ const TransactionDetails = ({ data, inputAddress, isDarkMode = true }) => {
           display: block;
         }
 
-        .transaction-list {
-          display: flex;
-          flex-direction: column;
-          gap: 20px;
-        }
+                 .transaction-list {
+           display: flex;
+           flex-direction: column;
+           gap: 30px;
+         }
 
         .transaction-item {
-          border-radius: 12px;
-          padding: 24px;
-          transition: all 0.2s;
-          margin-bottom: 8px;
+          border-radius: 15px;
+          padding: 30px;
+          transition: all 0.3s ease;
+          margin-bottom: 20px;
+          border: 2px solid rgba(0, 0, 0, 0.1);
+          box-shadow: 0 4px 20px rgba(0, 0, 0, 0.1);
         }
 
         .transaction-header {
           display: flex;
           align-items: center;
-          gap: 12px;
-          margin-bottom: 20px;
+          gap: 15px;
+          margin-bottom: 25px;
+          padding-bottom: 15px;
+          border-bottom: 2px solid rgba(0, 0, 0, 0.1);
+        }
+
+        .transaction-number {
+          font-size: 14px;
+          font-weight: 700;
+          color: #64748b;
+          background: rgba(0, 0, 0, 0.05);
+          padding: 4px 8px;
+          border-radius: 6px;
+          min-width: 30px;
+          text-align: center;
         }
 
         .transaction-type {
@@ -248,10 +264,12 @@ const TransactionDetails = ({ data, inputAddress, isDarkMode = true }) => {
         .transaction-path {
           display: flex;
           align-items: center;
-          gap: 16px;
-          margin-bottom: 20px;
-          padding: 20px;
-          border-radius: 8px;
+          gap: 20px;
+          margin-bottom: 25px;
+          padding: 25px;
+          border-radius: 12px;
+          background: rgba(0, 0, 0, 0.05);
+          border: 1px solid rgba(0, 0, 0, 0.1);
         }
 
         .wallet-address {
@@ -397,6 +415,11 @@ const TransactionDetails = ({ data, inputAddress, isDarkMode = true }) => {
           color: white;
         }
 
+        .transaction-details.dark .transaction-number {
+          color: rgba(255, 255, 255, 0.8);
+          background: rgba(255, 255, 255, 0.1);
+        }
+
         .transaction-details.dark .transaction-type {
           color: white;
         }
@@ -488,8 +511,8 @@ const TransactionDetails = ({ data, inputAddress, isDarkMode = true }) => {
         /* Light theme styles */
         .transaction-details.light {
           color: #1e293b;
-          background: rgba(255, 255, 255, 0.9);
-          border: 1px solid rgba(0, 0, 0, 0.1);
+          background: rgba(255, 255, 255, 0.95);
+          border: 1px solid rgba(0, 0, 0, 0.15);
           box-shadow: 0 10px 25px rgba(0, 0, 0, 0.1);
         }
 
@@ -498,6 +521,134 @@ const TransactionDetails = ({ data, inputAddress, isDarkMode = true }) => {
         }
 
         .transaction-details.light .section-subtitle {
+          color: #475569;
+        }
+
+        .transaction-details.light .tab-button {
+          background: rgba(0, 0, 0, 0.05);
+          border: 1px solid rgba(0, 0, 0, 0.1);
+          color: #1e293b;
+        }
+
+        .transaction-details.light .tab-button:hover {
+          background: rgba(0, 0, 0, 0.1);
+        }
+
+        .transaction-details.light .tab-button.active {
+          background: rgba(147, 51, 234, 0.2);
+          border-color: rgba(147, 51, 234, 0.4);
+          color: #1e293b;
+        }
+
+        .transaction-details.light .transaction-item {
+          background: rgba(255, 255, 255, 0.8);
+          border: 2px solid rgba(0, 0, 0, 0.1);
+          color: #1e293b;
+        }
+
+        .transaction-details.light .transaction-item:hover {
+          background: rgba(255, 255, 255, 0.9);
+          border-color: rgba(0, 0, 0, 0.2);
+          box-shadow: 0 6px 25px rgba(0, 0, 0, 0.15);
+        }
+
+        .transaction-details.light .transaction-header {
+          border-bottom: 2px solid rgba(0, 0, 0, 0.1);
+          color: #1e293b;
+        }
+
+        .transaction-details.light .transaction-number {
+          color: #64748b;
+          background: rgba(0, 0, 0, 0.05);
+        }
+
+        .transaction-details.light .transaction-type {
+          color: #1e293b;
+        }
+
+        .transaction-details.light .transaction-type.nft {
+          background-color: rgba(236, 72, 153, 0.2);
+          color: #1e293b;
+          border: 1px solid rgba(236, 72, 153, 0.4);
+        }
+
+        .transaction-details.light .transaction-type.spl_token {
+          background-color: rgba(59, 130, 246, 0.2);
+          color: #1e293b;
+          border: 1px solid rgba(59, 130, 246, 0.4);
+        }
+
+        .transaction-details.light .transaction-direction {
+          color: #1e293b;
+        }
+
+        .transaction-details.light .transaction-direction.incoming {
+          background-color: rgba(16, 185, 129, 0.2);
+          color: #1e293b;
+          border: 1px solid rgba(16, 185, 129, 0.4);
+        }
+
+        .transaction-details.light .transaction-direction.outgoing {
+          background-color: rgba(239, 68, 68, 0.2);
+          color: #1e293b;
+          border: 1px solid rgba(239, 68, 68, 0.4);
+        }
+
+        .transaction-details.light .transaction-path {
+          background: rgba(0, 0, 0, 0.05);
+          border: 1px solid rgba(0, 0, 0, 0.1);
+          color: #1e293b;
+        }
+
+        .transaction-details.light .wallet-address .label {
+          color: #475569;
+        }
+
+        .transaction-details.light .wallet-address .address {
+          color: #1e293b;
+        }
+
+        .transaction-details.light .badge {
+          background-color: rgba(16, 185, 129, 0.2);
+          color: #1e293b;
+          border: 1px solid rgba(16, 185, 129, 0.4);
+        }
+
+        .transaction-details.light .arrow {
+          color: #1e293b;
+        }
+
+        .transaction-details.light .transaction-details-row {
+          color: #1e293b;
+        }
+
+        .transaction-details.light .detail-item {
+          color: #1e293b;
+        }
+
+        .transaction-details.light .detail-label {
+          color: #475569;
+        }
+
+        .transaction-details.light .detail-value {
+          color: #1e293b;
+        }
+
+        .transaction-details.light .detail-value.amount {
+          color: #059669;
+        }
+
+        .transaction-details.light .detail-value.mint {
+          color: #64748b;
+        }
+
+        .transaction-details.light .no-transactions {
+          color: #1e293b;
+        }
+
+        .transaction-details.light .no-transactions p {
+          color: #64748b;
+        }
           color: rgba(30, 41, 59, 0.8);
         }
 
